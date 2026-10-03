@@ -15,6 +15,8 @@ Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage)
 | `/api/archivo` | todos | Descarga: genera una URL firmada de 60 s y redirige |
 | `/pedidos/nuevo` | todos | Nuevo pedido: proyecto (existente o nuevo), tareas del catálogo con fecha límite y notas, adjuntos con tipo, comentario |
 | `/cuenta` | todos | Datos del usuario y cambio de contraseña |
+| `/como-trabajamos` | todos | Qué hace y qué no hace Técnica, cómo pedir, estados y plazos mínimos. El texto se edita en `content/como-trabajamos.md`; la tabla de plazos sale del catálogo |
+| `/catalogo` | Técnica | Tipos de tarea (nombre, descripción, qué necesita, qué entrega, plazo mínimo, orden, activo), correos con acceso (con rol al entrar) y roles de usuarios (nadie cambia su propio rol) |
 | `/api/cron/notificaciones` | pg_cron | Envía la cola de notificaciones (requiere `CRON_SECRET`) |
 | `/api/cron/resumen` | pg_cron | Resumen diario para Técnica, 8:00 Madrid, lunes a viernes |
 
@@ -100,11 +102,8 @@ Copiar `.env.example` a `.env.local` y completar.
 - Quitar un correo de `allowed_emails` impide nuevas altas, pero no borra una cuenta ya creada:
   para eso, eliminar el usuario en Supabase > Authentication > Users.
 - Rol por defecto `solicitante`. Para que alguien entre directamente como Técnica, cargar su correo
-  en `allowed_emails` con `role = 'tecnica'` antes de su primer acceso:
-  ```sql
-  insert into public.allowed_emails (email, role) values ('nombre@smartworks.es', 'tecnica');
-  ```
-  Si el usuario ya existe: `update public.profiles set role = 'tecnica' where email = '...';`
+  en Catálogo > Correos con acceso con rol Técnica antes de su primer acceso. Si el usuario ya existe,
+  cambiarle el rol en Catálogo > Usuarios y roles.
 
 ## Permisos (RLS)
 

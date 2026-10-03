@@ -43,3 +43,18 @@
     outline-offset: 2px;
   }
 }
+
+/* Texto largo (Cómo trabajamos): jerarquía corta, tablas de la casa */
+@layer components {
+  .prose-sw { line-height: 1.6; }
+  .prose-sw h2 { margin: 2rem 0 0.5rem; font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-sw-blue); }
+  .prose-sw p { margin: 0.5rem 0; max-width: 65ch; }
+  .prose-sw ul, .prose-sw ol { margin: 0.5rem 0; padding-left: 1.25rem; }
+  .prose-sw ul { list-style: square; }
+  .prose-sw ol { list-style: decimal; }
+  .prose-sw li { margin: 0.25rem 0; }
+  .prose-sw table { width: 100%; margin: 0.75rem 0; border-collapse: collapse; font-size: 0.875rem; }
+  .prose-sw th { background: var(--color-sw-blue); color: #fff; text-align: left; font-size: 0.75rem; text-transform: uppercase; padding: 0.4rem 0.6rem; }
+  .prose-sw td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--color-line); vertical-align: top; }
+  .prose-sw tr:nth-child(even) td { background: var(--color-zebra); }
+}
