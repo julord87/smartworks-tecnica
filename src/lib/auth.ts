@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export type Role = "solicitante" | "tecnica";
 
@@ -13,6 +14,7 @@ export type Profile = {
 
 // Perfil del usuario logueado (una consulta por request)
 export const getProfile = cache(async (): Promise<Profile | null> => {
+  if (!isSupabaseConfigured) return null;
   const supabase = await createClient();
   const {
     data: { user },

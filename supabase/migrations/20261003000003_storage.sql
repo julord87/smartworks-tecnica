@@ -8,7 +8,7 @@ on conflict (id) do nothing;
 
 create or replace function public.storage_project_id(p_name text)
 returns uuid
-language plpgsql immutable
+language plpgsql immutable set search_path = ''
 as $$
 begin
   return (storage.foldername(p_name))[1]::uuid;

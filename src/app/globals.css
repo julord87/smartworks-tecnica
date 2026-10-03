@@ -1,5 +1,45 @@
 @import "tailwindcss";
 
-body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+/* Identidad Smartworks: azul para estructura, rojo solo para lo critico. Radio 0, sin sombras. */
+@theme {
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --color-sw-blue: #2e3192;
+  --color-sw-blue-dark: #23256f;
+  --color-sw-red: #e5194b;
+  --color-ink: #141414;
+  --color-muted: #54565a;
+  --color-zebra: #fbfbff;
+  --color-panel: #f4f4f6;
+  --color-line: #d9d9de;
+
+  /* Estados de tarea (desaturados) */
+  --color-st-recibida-bg: #eef0f6;
+  --color-st-recibida: #3b3f73;
+  --color-st-falta-bg: #fdeaef;
+  --color-st-falta: #b3123a;
+  --color-st-curso-bg: #e8e9f7;
+  --color-st-curso: #2e3192;
+  --color-st-entregada-bg: #e9f2ec;
+  --color-st-entregada: #2f5d3e;
+  --color-st-cancelada-bg: #f1f1f2;
+  --color-st-cancelada: #6b6d72;
+
+  --radius-none: 0;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-sw-blue);
+    outline-offset: 2px;
+  }
 }

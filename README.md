@@ -7,11 +7,11 @@ Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage)
 
 ```
 src/
-  middleware.ts          refresca la sesión y manda a /login si no hay usuario
+  proxy.ts               refresca la sesión y manda a /login si no hay usuario
   app/login/             formulario de enlace mágico
   app/auth/confirm/      destino del enlace (verifica token_hash y crea la sesión)
   app/auth/signout/      cierre de sesión (POST)
-  lib/supabase/          clientes de Supabase para servidor y middleware
+  lib/supabase/          clientes de Supabase para servidor y proxy
   lib/auth.ts            perfil del usuario logueado y guardas por rol
 supabase/
   migrations/   esquema, RLS, storage y catálogo inicial de tareas
@@ -44,11 +44,12 @@ Copiar `.env.example` a `.env.local` y completar.
   El control está en la base de datos (trigger de alta en `auth.users`), no solo en la app.
 - Quitar un correo de `allowed_emails` impide nuevas altas, pero no borra una cuenta ya creada:
   para eso, eliminar el usuario en Supabase > Authentication > Users.
-- Rol por defecto `solicitante`. Para dar rol `tecnica` al primer usuario:
+- Rol por defecto `solicitante`. Para que alguien entre directamente como Técnica, cargar su correo
+  en `allowed_emails` con `role = 'tecnica'` antes de su primer acceso:
   ```sql
-  update public.profiles set role = 'tecnica' where email = 'nombre@smartworks.es';
+  insert into public.allowed_emails (email, role) values ('nombre@smartworks.es', 'tecnica');
   ```
-  A partir de ahí, Técnica puede cambiar roles desde la app.
+  Si el usuario ya existe: `update public.profiles set role = 'tecnica' where email = '...';`
 
 ## Permisos (RLS)
 
@@ -112,9 +113,18 @@ Corre dentro de una transacción que se descarta. Cada comprobación imprime `ok
 
 ## Proyecto remoto
 
+- Supabase: proyecto `smartworks-tecnica` (ref `bjsnhwtlwffarvulnmee`, región eu-west-2).
+  Migraciones 0001-0006 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
+- Vercel: proyecto `tecnica-smartworks`, producción en `https://tecnica-smartworks.vercel.app` (rama `main`).
+  Variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clave publishable) y `NEXT_PUBLIC_SITE_URL` cargadas.
+
+Las migraciones se aplicaron con el conector de Supabase, que registra su propia versión en el historial.
+Antes de usar `supabase db push` por primera vez, alinear el historial:
+
 ```bash
-supabase link --project-ref <ref>
-supabase db push        # aplica migraciones (no carga seed.sql)
+supabase link --project-ref bjsnhwtlwffarvulnmee
+supabase migration list            # comparar local y remoto
+supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006
 ```
 
 ## Deploy en Vercel

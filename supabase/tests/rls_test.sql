@@ -37,6 +37,11 @@ insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000c1
 select pg_temp.check(
   (select role from public.profiles where id = '00000000-0000-0000-0000-0000000000c1') = 'solicitante',
   'email externo en allowlist puede darse de alta como solicitante');
+insert into public.allowed_emails (email, role) values ('jefa.tecnica@smartworks.es', 'tecnica');
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000c2', 'jefa.tecnica@smartworks.es');
+select pg_temp.check(
+  (select role from public.profiles where id = '00000000-0000-0000-0000-0000000000c2') = 'tecnica',
+  'rol pre-asignado en allowlist se aplica al darse de alta');
 
 set local role authenticated;
 
@@ -137,7 +142,7 @@ select pg_temp.expect_error(
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
 select pg_temp.check((select count(*) from public.projects) = 4, 'Tecnica ve todos los proyectos');
 insert into public.allowed_emails (email) values ('proveedor@externo.com');
-select pg_temp.check((select count(*) from public.allowed_emails) = 2, 'Tecnica administra la allowlist');
+select pg_temp.check((select count(*) from public.allowed_emails) = 3, 'Tecnica administra la allowlist');
 select pg_temp.expect_error(
   $$update public.tasks set assignee_id = '00000000-0000-0000-0000-0000000000b1' where id = '30000000-0000-0000-0000-000000000004'$$,
   'responsable solo puede ser de Tecnica');

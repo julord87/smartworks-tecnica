@@ -1,47 +1,53 @@
 import Link from "next/link";
+import { SignOut } from "@phosphor-icons/react/dist/ssr";
 import { getProfile } from "@/lib/auth";
+import { NavLinks } from "./nav-links";
 
+// Cabecera de la casa: franja roja (marca) + barra azul (navegacion)
 export async function Header() {
   const profile = await getProfile();
   if (!profile) return null;
 
-  const links =
-    profile.role === "tecnica"
-      ? [
-          { href: "/bandeja", label: "Bandeja" },
-          { href: "/pedidos/nuevo", label: "Nuevo pedido" },
-          { href: "/catalogo", label: "Catálogo" },
-          { href: "/como-trabajamos", label: "Cómo trabajamos" },
-        ]
-      : [
-          { href: "/pedidos", label: "Mis pedidos" },
-          { href: "/pedidos/nuevo", label: "Nuevo pedido" },
-          { href: "/como-trabajamos", label: "Cómo trabajamos" },
-        ];
+  const isTecnica = profile.role === "tecnica";
+  const links = isTecnica
+    ? [
+        { href: "/bandeja", label: "Bandeja" },
+        { href: "/pedidos/nuevo", label: "Nuevo pedido" },
+        { href: "/catalogo", label: "Catálogo" },
+        { href: "/como-trabajamos", label: "Cómo trabajamos" },
+      ]
+    : [
+        { href: "/pedidos", label: "Mis pedidos" },
+        { href: "/pedidos/nuevo", label: "Nuevo pedido" },
+        { href: "/como-trabajamos", label: "Cómo trabajamos" },
+      ];
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <Link href="/" className="font-semibold">
-          Técnica Smartworks
-        </Link>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-gray-900 hover:underline">
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="hidden text-gray-600 sm:inline">
-            {profile.full_name ?? profile.email}
-            {profile.role === "tecnica" && <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs">Técnica</span>}
-          </span>
-          <form action="/auth/signout" method="post">
-            <button type="submit" className="text-gray-600 hover:text-gray-900 hover:underline">
-              Salir
-            </button>
-          </form>
+    <header>
+      <div className="bg-sw-red text-white">
+        <div className="mx-auto flex h-7 max-w-6xl items-center justify-between px-4 text-[11px] font-bold tracking-wide">
+          <span>PRODUCCIÓN TÉCNICA</span>
+          <span>SMARTWORKS</span>
+        </div>
+      </div>
+      <div className="bg-sw-blue text-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 px-4">
+          <Link href="/" className="py-3 text-lg font-extrabold italic uppercase tracking-tight">
+            Técnica
+          </Link>
+          <NavLinks links={links} />
+          <div className="ml-auto flex items-center gap-4 py-3 text-sm">
+            <span className="hidden text-white/80 md:inline">
+              {profile.full_name ?? profile.email}
+              {isTecnica && <span className="ml-2 font-semibold text-white">Técnica</span>}
+            </span>
+            <form action="/auth/signout" method="post">
+              <button type="submit" className="inline-flex items-center gap-1.5 text-white/90 hover:text-white" aria-label="Salir">
+                <SignOut size={18} weight="bold" />
+                <span className="hidden sm:inline">Salir</span>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </header>
