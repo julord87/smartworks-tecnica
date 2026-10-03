@@ -6,6 +6,13 @@ Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage)
 ## Estructura
 
 ```
+src/
+  middleware.ts          refresca la sesión y manda a /login si no hay usuario
+  app/login/             formulario de enlace mágico
+  app/auth/confirm/      destino del enlace (verifica token_hash y crea la sesión)
+  app/auth/signout/      cierre de sesión (POST)
+  lib/supabase/          clientes de Supabase para servidor y middleware
+  lib/auth.ts            perfil del usuario logueado y guardas por rol
 supabase/
   migrations/   esquema, RLS, storage y catálogo inicial de tareas
   seed.sql      datos de ejemplo inventados (solo local)
