@@ -64,3 +64,13 @@ export function safeFileName(fileName: string): string {
 export function personLabel(p: PersonOption): string {
   return p.full_name?.trim() || p.email;
 }
+
+export type TaskStatus = "recibida" | "falta_informacion" | "en_curso" | "entregada" | "cancelada";
+
+export const STATUS_LABELS: Record<TaskStatus, string> = {
+  recibida: "Recibida",
+  falta_informacion: "Falta información",
+  en_curso: "En curso",
+  entregada: "Entregada",
+  cancelada: "Cancelada",
+};

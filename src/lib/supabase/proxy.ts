@@ -7,6 +7,9 @@ const PUBLIC_PATHS = ["/login", "/auth/confirm"];
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Endpoints que llama pg_cron: se autentican con CRON_SECRET, no con sesion
+  if (request.nextUrl.pathname.startsWith("/api/cron/")) return response;
+
   if (!isSupabaseConfigured) {
     if (request.nextUrl.pathname === "/login") return response;
     const url = request.nextUrl.clone();

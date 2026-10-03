@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { CheckCircle, Paperclip, Trash, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle, Paperclip, Trash, WarningCircle, X } from "@phosphor-icons/react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { addDays, daysBetween, shortDate, todayISO } from "@/lib/dates";
@@ -38,12 +38,23 @@ const LABEL = "text-sm font-semibold";
 const SECTION = "border-t border-line pt-8 mt-10";
 const SECTION_TITLE = "mb-1 text-sm font-bold uppercase tracking-wide text-sw-blue";
 const MAX_MB = 100;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export function NewRequestForm({ currentUserId, taskTypes, projects, people }: Props) {
   const today = todayISO();
   const [mode, setMode] = useState<"existente" | "nuevo">(projects.length ? "existente" : "nuevo");
   const [projectId, setProjectId] = useState("");
-  const [newProject, setNewProject] = useState({ name: "", client: "", event_date: "", venue: "", pm_id: currentUserId });
+  const [newProject, setNewProject] = useState({
+    name: "",
+    client: "",
+    event_date: "",
+    venue: "",
+    supplier: "",
+    pm_id: currentUserId,
+  });
+  const [watchers, setWatchers] = useState<string[]>([]);
+  const [watcherDraft, setWatcherDraft] = useState("");
+  const [watcherError, setWatcherError] = useState("");
   const [selected, setSelected] = useState<Record<string, Selected>>({});
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [comment, setComment] = useState("");
@@ -72,6 +83,18 @@ export function NewRequestForm({ currentUserId, taskTypes, projects, people }: P
     if (fileInput.current) fileInput.current.value = "";
   }
 
+  function addWatcher() {
+    const email = watcherDraft.trim().toLowerCase();
+    if (!email) return;
+    if (!EMAIL_RE.test(email)) {
+      setWatcherError("Correo no válido.");
+      return;
+    }
+    if (!watchers.includes(email)) setWatchers([...watchers, email]);
+    setWatcherDraft("");
+    setWatcherError("");
+  }
+
   function validate(): string[] {
     const e: string[] = [];
     if (mode === "existente" && !projectId) e.push("Elige un proyecto o crea uno nuevo.");
@@ -94,6 +117,9 @@ export function NewRequestForm({ currentUserId, taskTypes, projects, people }: P
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
+    // Un correo escrito sin pulsar "Añadir" tambien cuenta
+    const draft = watcherDraft.trim().toLowerCase();
+    const allWatchers = draft && EMAIL_RE.test(draft) && !watchers.includes(draft) ? [...watchers, draft] : watchers;
     const e = validate();
     setErrors(e);
     if (e.length) {
@@ -106,6 +132,7 @@ export function NewRequestForm({ currentUserId, taskTypes, projects, people }: P
       projectId: mode === "existente" ? projectId : null,
       newProject: mode === "nuevo" ? newProject : null,
       comment,
+      watchers: allWatchers,
       tasks: selectedIds.map((id) => ({ task_type_id: id, due_date: selected[id].due, notes: selected[id].notes })),
       fileCount: files.length,
     });
@@ -292,7 +319,18 @@ export function NewRequestForm({ currentUserId, taskTypes, projects, people }: P
                 className={INPUT}
               />
             </div>
-            <div className="flex flex-col gap-2 md:col-span-2">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="np-supplier" className={LABEL}>
+                Proveedor técnico <span className="font-normal text-muted">(si lo hay)</span>
+              </label>
+              <input
+                id="np-supplier"
+                value={newProject.supplier}
+                onChange={(e) => setNewProject({ ...newProject, supplier: e.target.value })}
+                className={INPUT}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
               <label htmlFor="np-pm" className={LABEL}>
                 PM responsable
               </label>
@@ -465,6 +503,65 @@ export function NewRequestForm({ currentUserId, taskTypes, projects, people }: P
           onChange={(e) => setComment(e.target.value)}
           className={`${INPUT} py-2`}
         />
+      </section>
+
+      {/* Avisos */}
+      <section aria-labelledby="sec-avisos" className={SECTION}>
+        <h2 id="sec-avisos" className={SECTION_TITLE}>
+          Avisos por correo
+        </h2>
+        <p className="text-sm text-muted">
+          Te avisamos a ti y al PM del proyecto cuando una tarea queda en falta de información, se entrega o se cancela.
+          Si alguien más tiene que enterarse, agrégalo.
+        </p>
+        {watchers.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {watchers.map((w) => (
+              <li key={w} className="inline-flex items-center gap-1 border border-sw-blue py-1 pr-1 pl-3 text-sm">
+                {w}
+                <button
+                  type="button"
+                  onClick={() => setWatchers(watchers.filter((x) => x !== w))}
+                  aria-label={`Quitar ${w}`}
+                  className="inline-flex size-8 items-center justify-center text-muted hover:text-sw-red"
+                >
+                  <X size={16} weight="bold" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-4 flex flex-col gap-2">
+          <label htmlFor="watcher" className={LABEL}>
+            Notificar también a
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="watcher"
+              type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={watcherDraft}
+              onChange={(e) => setWatcherDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  addWatcher();
+                }
+              }}
+              aria-describedby="watcher-help"
+              aria-invalid={!!watcherError}
+              className={INPUT}
+            />
+            <Button type="button" variant="secondary" onClick={addWatcher}>
+              Añadir
+            </Button>
+          </div>
+          <p id="watcher-help" className={`text-sm ${watcherError ? "font-semibold text-st-falta" : "text-muted"}`}>
+            {watcherError || "Solo correos internos (@smartworks.es o autorizados por Técnica)."}
+          </p>
+        </div>
       </section>
 
       {/* Barra de envio */}

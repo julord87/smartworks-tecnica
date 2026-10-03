@@ -248,6 +248,137 @@ select pg_temp.expect_error(
     (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 5)) from public.task_types where position = 5))$$,
   'create_request rechaza proyecto inexistente');
 
+-- ---------------------------------------------------------------- copias y notificaciones
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+select pg_temp.expect_error(
+  $$select public.create_request('10000000-0000-0000-0000-000000000001', null, null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 5)) from public.task_types where position = 7),
+    array['cliente@gmail.com'])$$,
+  'copias: rechaza correos externos');
+create temp table cr2 as
+select public.create_request(null, '{"name":"Expo Copias","client":"C","supplier":"AV Norte"}', null,
+  (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 9)) from public.task_types where position = 7),
+  array['Pm.Ana@smartworks.es', 'pm.ana@smartworks.es', 'freelance@estudio-externo.com']) as r;
+select pg_temp.check(
+  (select count(*) from public.request_watchers where request_id = ((select r from cr2) ->> 'request_id')::uuid) = 2,
+  'copias: internas y allowlist, sin duplicados');
+select pg_temp.check(
+  (select supplier from public.projects where id = ((select r from cr2) ->> 'project_id')::uuid) = 'AV Norte',
+  'proveedor del proyecto guardado');
+
+reset role;
+select pg_temp.check(
+  (select array_agg(recipient order by recipient) from public.notifications
+   where kind = 'pedido_nuevo' and request_id = ((select r from cr2) ->> 'request_id')::uuid)
+  = array['jefa.tecnica@smartworks.es', 'proveedor@externo.com', 'rigging@smartworks.es', 'tecnica@smartworks.es']::text[]
+  or (select array_agg(recipient order by recipient) from public.notifications
+   where kind = 'pedido_nuevo' and request_id = ((select r from cr2) ->> 'request_id')::uuid)
+  @> array['rigging@smartworks.es', 'tecnica@smartworks.es']::text[],
+  'pedido nuevo avisa a Tecnica');
+select pg_temp.check(
+  not exists (select 1 from public.notifications where kind = 'pedido_nuevo' and recipient = 'pm.marcos@smartworks.es'
+              and request_id = ((select r from cr2) ->> 'request_id')::uuid),
+  'pedido nuevo no avisa a quien lo hizo');
+
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update public.tasks set status = 'falta_informacion', status_note = 'Falta el plano del stand'
+where request_id = ((select r from cr2) ->> 'request_id')::uuid;
+reset role;
+select pg_temp.check(
+  (select array_agg(recipient || ':' || reason order by recipient) from public.notifications
+   where kind = 'falta_informacion' and request_id = ((select r from cr2) ->> 'request_id')::uuid)
+  = array['freelance@estudio-externo.com:copia', 'pm.ana@smartworks.es:copia', 'pm.marcos@smartworks.es:solicitante'],
+  'falta informacion avisa a solicitante, PM y copias (sin duplicar)');
+select pg_temp.check(
+  (select body from public.notifications where kind = 'falta_informacion' and recipient = 'pm.marcos@smartworks.es'
+   and request_id = ((select r from cr2) ->> 'request_id')::uuid) = 'Falta el plano del stand',
+  'el aviso lleva que falta');
+select pg_temp.check(
+  not exists (select 1 from public.notifications n join public.tasks t on t.id = n.task_id
+              where t.request_id = ((select r from cr2) ->> 'request_id')::uuid and n.recipient = 'tecnica@smartworks.es'
+              and n.kind <> 'pedido_nuevo'),
+  'quien cambia el estado no recibe aviso');
+
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update public.tasks set assignee_id = '00000000-0000-0000-0000-0000000000a2'
+where request_id = ((select r from cr2) ->> 'request_id')::uuid;
+update public.tasks set status = 'en_curso' where request_id = ((select r from cr2) ->> 'request_id')::uuid;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+reset role;
+select pg_temp.check(
+  not exists (select 1 from public.notifications where kind::text = 'en_curso'),
+  'en curso no genera correo');
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update public.tasks set status = 'falta_informacion', status_note = 'Necesito cotas'
+where request_id = ((select r from cr2) ->> 'request_id')::uuid;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+insert into public.task_events (task_id, author_id, kind, body)
+select id, auth.uid(), 'comentario', 'Subo las cotas hoy' from public.tasks where request_id = ((select r from cr2) ->> 'request_id')::uuid;
+reset role;
+select pg_temp.check(
+  (select array_agg(recipient || ':' || reason) from public.notifications
+   where kind = 'respuesta' and request_id = ((select r from cr2) ->> 'request_id')::uuid)
+  = array['rigging@smartworks.es:responsable'],
+  'respuesta del solicitante avisa al responsable');
+
+-- Cola: secreto, agrupado y confirmacion
+insert into public.app_config (key, value) values ('cron_secret', 'secreto-de-prueba');
+set local role anon;
+select pg_temp.expect_error($$select public.notifications_claim('malo')$$, 'cola: secreto incorrecto rechazado');
+select pg_temp.expect_error($$select * from public.notifications$$, 'cola: anon no lee notificaciones');
+reset role;
+update public.notifications set created_at = now() - interval '5 minutes';
+set local role anon;
+create temp table claimed as select public.notifications_claim('secreto-de-prueba') as m;
+reset role;
+select pg_temp.check(
+  (select count(*) from jsonb_array_elements((select m from claimed)) e
+   where e ->> 'to' = 'pm.marcos@smartworks.es'
+     and e -> 'request' ->> 'id' = (select r from cr2) ->> 'request_id'
+     and jsonb_array_length(e -> 'events') = 2) = 1,
+  'cola: un correo por destinatario y pedido con sus eventos');
+select pg_temp.check(
+  (select count(*) from public.notifications where claimed_at is null and sent_at is null) = 0,
+  'cola: todo lo listo queda reservado');
+set local role anon;
+select public.notifications_claim('secreto-de-prueba');
+reset role;
+select pg_temp.check(
+  jsonb_array_length((select public.notifications_claim('secreto-de-prueba'))) = 0,
+  'cola: lo reservado no se reenvia');
+set local role anon;
+select public.notifications_ack('secreto-de-prueba',
+  (select array_agg((x)::bigint) from jsonb_array_elements((select m from claimed)) e, jsonb_array_elements_text(e -> 'ids') x));
+reset role;
+select pg_temp.check(
+  (select count(*) from public.notifications where sent_at is null) = 0,
+  'cola: ack marca enviadas');
+
+insert into public.notifications (recipient, reason, kind, request_id) values
+  ('x@smartworks.es', 'tecnica', 'pedido_nuevo', ((select r from cr2) ->> 'request_id')::uuid);
+select pg_temp.check(
+  jsonb_array_length((select public.notifications_claim('secreto-de-prueba'))) = 0,
+  'cola: espera 2 minutos sin novedades antes de enviar');
+insert into public.app_config (key, value) values ('app_url', 'https://app.test');
+update public.notifications set created_at = now() - interval '3 minutes' where recipient = 'x@smartworks.es';
+select public.notifications_kick();
+select pg_temp.check(
+  (select count(*) from net.calls where url = 'https://app.test/api/cron/notificaciones'
+   and headers ->> 'authorization' = 'Bearer secreto-de-prueba') = 1,
+  'kick: llama a la app solo si hay pendientes');
+update public.notifications set sent_at = now();
+select public.notifications_kick();
+select pg_temp.check((select count(*) from net.calls) = 1, 'kick: sin pendientes no llama');
+
+select pg_temp.check(
+  (select jsonb_array_length(d -> 'tasks') > 0 and d -> 'recipients' ? 'tecnica@smartworks.es'
+   from (select public.tecnica_digest('secreto-de-prueba', current_date + 30) as d) x),
+  'resumen diario: tareas vencidas y destinatarios de Tecnica');
+set local role authenticated;
+
 -- ---------------------------------------------------------------- anon
 reset role;
 set local role anon;
