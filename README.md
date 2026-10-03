@@ -10,10 +10,44 @@ Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage)
 | `/login` | todos | Acceso por enlace al correo o contraseña |
 | `/pedidos/nuevo` | todos | Nuevo pedido: proyecto (existente o nuevo), tareas del catálogo con fecha límite y notas, adjuntos con tipo, comentario |
 | `/cuenta` | todos | Datos del usuario y cambio de contraseña |
+| `/api/cron/notificaciones` | pg_cron | Envía la cola de notificaciones (requiere `CRON_SECRET`) |
+| `/api/cron/resumen` | pg_cron | Resumen diario para Técnica, 8:00 Madrid, lunes a viernes |
 
 El pedido se crea en una sola transacción (`create_request`, con RLS). Los adjuntos se suben desde el
 navegador directo a Storage (sin pasar por el servidor de la app, sin límite de tamaño de Vercel) y después
 se registran en `attachments`. Si un archivo falla, el pedido queda creado y se avisa cuál faltó.
+
+## Notificaciones por correo
+
+Se avisa solo cuando hay algo que hacer o algo nuevo que ver:
+
+| Evento | A quién |
+|---|---|
+| Pedido nuevo | Técnica |
+| Tarea pasa a *falta información* (con lo que falta) | Solicitante, PM del proyecto, copias del pedido |
+| Tarea *entregada* (con el entregable) | Solicitante, PM, copias |
+| Tarea *cancelada* | Solicitante, PM, copias |
+| El solicitante comenta o adjunta en una tarea en *falta información* | Responsable de la tarea (o Técnica si no tiene) |
+| Resumen diario (solo si hay algo): vencidas, vencen hoy/mañana, esperando info 2+ días | Técnica |
+
+- Nunca se avisa a quien hizo el cambio. "En curso" no envía correo.
+- Copias ("Notificar también a"): solo correos `@smartworks.es` o de `allowed_emails`. Lo valida la base.
+- Agrupación: los avisos de un mismo pedido se juntan en un correo por persona. Se envía cuando el pedido
+  lleva 2 minutos sin novedades, o a los 10 minutos como máximo.
+- Cada correo dice por qué lo recibe esa persona (solicitante, PM, copia, Técnica, responsable).
+
+Cómo funciona: triggers en la base encolan en `public.notifications` (una fila por destinatario).
+`pg_cron` ejecuta `notifications_kick()` cada 2 minutos; si hay pendientes, llama por `pg_net` a
+`/api/cron/notificaciones`, que lee la cola con `notifications_claim`, envía en lote por Resend y confirma
+con `notifications_ack`. Sin `RESEND_API_KEY` la app no reserva nada y la cola caduca a los 2 días.
+
+Configuración (una vez):
+1. Resend: dominio verificado y API key (ver "Correo del enlace de acceso").
+2. Vercel: `RESEND_API_KEY` (sensitive) y `EMAIL_FROM`. `CRON_SECRET` ya está cargado.
+3. Supabase (ya hecho): `insert into public.app_config (key, value) values ('app_url', 'https://...'), ('cron_secret', '...');`
+   con el mismo valor que `CRON_SECRET`. Para rotarlo, cambiar ambos.
+
+Pendientes y errores: `select recipient, kind, created_at, sent_at, attempts, last_error from public.notifications order by id desc;`
 
 ## Estructura
 
@@ -40,8 +74,9 @@ supabase/
 | `NEXT_PUBLIC_SUPABASE_URL` | app | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | app | Clave pública (anon / publishable) |
 | `NEXT_PUBLIC_SITE_URL` | app y Supabase Auth | URL pública de la app, sin barra final (`http://localhost:3000` en local) |
-| `RESEND_API_KEY` | app | Clave de Resend para notificaciones (etapa final) |
-| `EMAIL_FROM` | app | Remitente de las notificaciones, p. ej. `Técnica Smartworks <tecnica@tudominio.com>` |
+| `RESEND_API_KEY` | app | Clave de Resend para las notificaciones (tipo *sensitive* en Vercel) |
+| `EMAIL_FROM` | app | Remitente de las notificaciones, p. ej. `Técnica Smartworks <tecnica@tudominio.com>` (dominio verificado en Resend) |
+| `CRON_SECRET` | app y Supabase | Secreto compartido con `public.app_config` para `/api/cron/*` |
 | `SMTP_HOST` | Supabase Auth | `smtp.resend.com` |
 | `SMTP_USER` | Supabase Auth | `resend` |
 | `SMTP_PASS` | Supabase Auth | Clave de Resend (puede ser otra distinta a `RESEND_API_KEY`, con permiso solo de envío) |
@@ -129,7 +164,7 @@ Corre dentro de una transacción que se descarta. Cada comprobación imprime `ok
 ## Proyecto remoto
 
 - Supabase: proyecto `smartworks-tecnica` (ref `bjsnhwtlwffarvulnmee`, región eu-west-2).
-  Migraciones 0001-0007 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
+  Migraciones 0001-0010 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
 - Vercel: proyecto `tecnica-smartworks`, producción en `https://tecnica-smartworks.vercel.app` (rama `main`).
   Variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clave publishable) y `NEXT_PUBLIC_SITE_URL` cargadas.
 
@@ -139,7 +174,7 @@ Antes de usar `supabase db push` por primera vez, alinear el historial:
 ```bash
 supabase link --project-ref bjsnhwtlwffarvulnmee
 supabase migration list            # comparar local y remoto
-supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006 20261003000007
+supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006 20261003000007 20261003000008 20261003000009 20261003000010
 ```
 
 ## Deploy en Vercel
