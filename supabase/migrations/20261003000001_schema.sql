@@ -165,8 +165,9 @@ as $$
   );
 $$;
 
--- "Sus proyectos" para un solicitante: es el PM, lo creo, o tiene algun pedido en el.
-create or replace function public.can_view_project(p_project_id uuid)
+-- Miembro de un proyecto: Tecnica, el PM, quien lo creo o quien tiene algun pedido en el.
+-- Lectura: abierta a todo usuario autenticado. Escritura (adjuntos, comentarios, archivos): solo miembros.
+create or replace function public.is_project_member(p_project_id uuid)
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
@@ -210,15 +211,33 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
--- Alta de usuario: solo @smartworks.es, perfil con rol solicitante
+-- allowed_emails: correos externos (sin @smartworks.es) con acceso permitido
+-- ---------------------------------------------------------------------------
+create table public.allowed_emails (
+  email       text primary key check (email = lower(trim(email)) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  note        text,
+  added_by    uuid default auth.uid() references public.profiles (id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+
+create or replace function public.is_email_allowed(p_email text)
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select lower(trim(p_email)) ~ '^[^@\s]+@smartworks\.es$'
+    or exists (select 1 from public.allowed_emails a where a.email = lower(trim(p_email)));
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Alta de usuario: solo @smartworks.es o allowlist, perfil con rol solicitante
 -- ---------------------------------------------------------------------------
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if new.email is null or lower(new.email) !~ '^[^@]+@smartworks\.es$' then
-    raise exception 'Solo se permiten direcciones @smartworks.es';
+  if new.email is null or not public.is_email_allowed(new.email) then
+    raise exception 'Correo no autorizado';
   end if;
 
   insert into public.profiles (id, email, full_name)
@@ -266,6 +285,11 @@ returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
+  if new.assignee_id is not null and (tg_op = 'INSERT' or new.assignee_id is distinct from old.assignee_id)
+     and not exists (select 1 from public.profiles p where p.id = new.assignee_id and p.role = 'tecnica') then
+    raise exception 'El responsable tiene que ser de Tecnica';
+  end if;
+
   if tg_op = 'INSERT' then
     new.status := 'recibida';
     new.status_note := null;

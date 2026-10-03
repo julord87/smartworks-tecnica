@@ -1,0 +1,52 @@
+# Configuracion de Supabase CLI (desarrollo local: `supabase start`).
+# En el proyecto remoto estos mismos valores se cargan desde el panel (ver README).
+project_id = "tecnica-smartworks"
+
+[db]
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[storage]
+enabled = true
+file_size_limit = "100MiB"
+
+[auth]
+enabled = true
+site_url = "env(NEXT_PUBLIC_SITE_URL)"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+# Ventana minima entre dos envios al mismo correo
+max_frequency = "30s"
+otp_expiry = 3600
+
+# Plantillas: enlace con token_hash -> /auth/confirm (funciona aunque se abra en otro dispositivo)
+[auth.email.template.magic_link]
+subject = "Tu enlace de acceso a Técnica Smartworks"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Tu enlace de acceso a Técnica Smartworks"
+content_path = "./supabase/templates/confirmation.html"
+
+# SMTP propio (Resend). Sin esto Supabase usa su servidor de pruebas: 2 correos/hora y no apto para produccion.
+# En local, si SMTP_HOST no esta definido, desactivar este bloque: los correos se ven en Inbucket (http://localhost:54324).
+[auth.email.smtp]
+enabled = false
+host = "env(SMTP_HOST)"
+port = 465
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASS)"
+admin_email = "env(SMTP_SENDER_EMAIL)"
+sender_name = "Técnica Smartworks"
+
+[auth.rate_limit]
+# Correos por hora (solo aplica con SMTP propio)
+email_sent = 60

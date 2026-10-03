@@ -32,15 +32,27 @@ grant execute on all functions in schema pg_temp to authenticated;
 select pg_temp.expect_error(
   $$insert into auth.users (id, email) values (gen_random_uuid(), 'alguien@gmail.com')$$,
   'rechaza emails fuera de @smartworks.es');
+insert into public.allowed_emails (email, note) values ('freelance@estudio-externo.com', 'Freelance rigging');
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000c1', 'Freelance@Estudio-Externo.com');
+select pg_temp.check(
+  (select role from public.profiles where id = '00000000-0000-0000-0000-0000000000c1') = 'solicitante',
+  'email externo en allowlist puede darse de alta como solicitante');
 
 set local role authenticated;
 
 -- ---------------------------------------------------------------- Ana (solicitante, b1)
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
-select pg_temp.check((select count(*) from public.projects) = 2, 'Ana ve solo sus 2 proyectos');
-select pg_temp.check((select count(*) from public.tasks) = 3, 'Ana ve solo las tareas de sus proyectos');
-select pg_temp.check((select count(*) from public.task_inbox) = 3, 'task_inbox respeta RLS');
-select pg_temp.check((select count(*) from public.deliverables) = 0, 'Ana no ve entregables de otro proyecto');
+select pg_temp.check((select count(*) from public.projects) = 3, 'solicitante ve todos los proyectos');
+select pg_temp.check((select count(*) from public.tasks) = 5, 'solicitante ve todas las tareas');
+select pg_temp.check((select count(*) from public.task_inbox) = 5, 'task_inbox visible');
+select pg_temp.check((select count(*) from public.deliverables) = 1, 'solicitante ve entregables de otros proyectos');
+select pg_temp.check((select count(*) from public.allowed_emails) = 0, 'solicitante no ve la allowlist');
+select pg_temp.expect_error(
+  $$insert into public.allowed_emails (email) values ('otro@externo.com')$$,
+  'solicitante no edita la allowlist');
+select pg_temp.expect_error(
+  $$select public.is_email_allowed('freelance@estudio-externo.com')$$,
+  'is_email_allowed no es invocable por clientes');
 select pg_temp.check((select count(*) from public.task_types) = 13, 'catalogo visible');
 
 select pg_temp.expect_error(
@@ -58,8 +70,16 @@ select pg_temp.expect_error(
   'solicitante no edita catalogo');
 
 select pg_temp.expect_error(
-  $$insert into public.requests (project_id) values ('10000000-0000-0000-0000-000000000002')$$,
-  'no puede pedir sobre un proyecto ajeno');
+  $$insert into public.requests (project_id, requested_by) values ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000b2')$$,
+  'no puede crear pedidos a nombre de otro');
+select pg_temp.expect_error(
+  $$insert into public.attachments (request_id, storage_path, file_name)
+    values ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002/x.pdf', 'x.pdf')$$,
+  'no adjunta en proyecto donde no participa');
+select pg_temp.expect_error(
+  $$insert into public.task_events (task_id, author_id, kind, body)
+    values ('30000000-0000-0000-0000-000000000003', auth.uid(), 'comentario', 'x')$$,
+  'no comenta en proyecto donde no participa');
 
 select pg_temp.expect_error(
   $$insert into public.task_events (task_id, author_id, kind, to_status) values
@@ -88,16 +108,26 @@ insert into storage.objects (bucket_id, name)
 values ('archivos', '10000000-0000-0000-0000-0000000000ff/requests/20000000-0000-0000-0000-0000000000ff/brief.pdf');
 select pg_temp.expect_error(
   $$insert into storage.objects (bucket_id, name) values ('archivos', '10000000-0000-0000-0000-000000000002/x.pdf')$$,
-  'no sube archivos a proyecto ajeno');
+  'no sube archivos a proyecto donde no participa');
 insert into public.task_events (task_id, author_id, kind, body)
 values ('30000000-0000-0000-0000-0000000000ff', auth.uid(), 'comentario', 'hola');
 
 -- ---------------------------------------------------------------- Marcos (solicitante, b2)
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
-select pg_temp.check((select count(*) from public.projects) = 1, 'Marcos ve solo su proyecto');
-select pg_temp.check((select count(*) from public.attachments) = 0, 'Marcos no ve adjuntos de Ana');
-select pg_temp.check((select count(*) from storage.objects) = 0, 'Marcos no ve archivos de Ana');
-select pg_temp.check((select count(*) from public.deliverables) = 1, 'Marcos ve entregables de su proyecto');
+select pg_temp.check((select count(*) from public.projects) = 4, 'Marcos ve todos los proyectos');
+select pg_temp.check((select count(*) from public.attachments) = 1, 'Marcos ve adjuntos de Ana');
+select pg_temp.check((select count(*) from storage.objects) = 1, 'Marcos ve archivos de Ana');
+-- Pedir sobre un proyecto ajeno: permitido; al hacerlo puede adjuntar y comentar
+insert into public.requests (id, project_id, comment)
+values ('20000000-0000-0000-0000-0000000000ee', '10000000-0000-0000-0000-000000000001', 'pedido sobre proyecto de Ana');
+insert into public.attachments (request_id, kind, storage_path, file_name)
+values ('20000000-0000-0000-0000-0000000000ee', 'plano',
+        '10000000-0000-0000-0000-000000000001/requests/20000000-0000-0000-0000-0000000000ee/plano.pdf', 'plano.pdf');
+select pg_temp.check(true, 'puede pedir y adjuntar sobre un proyecto ajeno');
+update public.projects set name = 'x' where id = '10000000-0000-0000-0000-000000000001';
+select pg_temp.check(
+  (select name from public.projects where id = '10000000-0000-0000-0000-000000000001') <> 'x',
+  'no edita proyecto ajeno');
 select pg_temp.expect_error(
   $$insert into public.tasks (request_id, task_type_id, due_date)
     select '20000000-0000-0000-0000-000000000001', id, current_date from public.task_types where position = 1$$,
@@ -106,6 +136,15 @@ select pg_temp.expect_error(
 -- ---------------------------------------------------------------- Laura (tecnica, a1)
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
 select pg_temp.check((select count(*) from public.projects) = 4, 'Tecnica ve todos los proyectos');
+insert into public.allowed_emails (email) values ('proveedor@externo.com');
+select pg_temp.check((select count(*) from public.allowed_emails) = 2, 'Tecnica administra la allowlist');
+select pg_temp.expect_error(
+  $$update public.tasks set assignee_id = '00000000-0000-0000-0000-0000000000b1' where id = '30000000-0000-0000-0000-000000000004'$$,
+  'responsable solo puede ser de Tecnica');
+update public.tasks set assignee_id = '00000000-0000-0000-0000-0000000000a2' where id = '30000000-0000-0000-0000-000000000004';
+select pg_temp.check(
+  (select assignee_id from public.tasks where id = '30000000-0000-0000-0000-000000000004') = '00000000-0000-0000-0000-0000000000a2',
+  'asigna responsable de Tecnica');
 select pg_temp.check((select count(*) from public.tasks) = 6, 'Tecnica ve todas las tareas');
 select pg_temp.check((select count(*) from storage.objects) = 1, 'Tecnica ve todos los archivos');
 

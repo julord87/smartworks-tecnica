@@ -19,11 +19,11 @@ $$;
 
 create policy archivos_select on storage.objects
   for select to authenticated
-  using (bucket_id = 'archivos' and public.can_view_project(public.storage_project_id(name)));
+  using (bucket_id = 'archivos');
 
 create policy archivos_insert on storage.objects
   for insert to authenticated
-  with check (bucket_id = 'archivos' and public.can_view_project(public.storage_project_id(name)));
+  with check (bucket_id = 'archivos' and public.is_project_member(public.storage_project_id(name)));
 
 create policy archivos_delete on storage.objects
   for delete to authenticated

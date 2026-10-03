@@ -1,5 +1,5 @@
 -- Tecnica Smartworks - catalogo inicial de tareas
--- min_days: valores propuestos, a validar por Tecnica (editables desde Administracion).
+-- min_days: plazos minimos en dias (editables desde Administracion).
 
 insert into public.task_types (position, name, description, needs, delivers, min_days, is_discovery) values
 (0,  'No sé qué necesito',
@@ -13,7 +13,7 @@ insert into public.task_types (position, name, description, needs, delivers, min
 (2,  'Visita técnica al venue',
      'Visita presencial para relevar condiciones técnicas.',
      'Venue, contacto, fecha posible.',
-     'Informe de visita con fotos.', 5, false),
+     'Informe de visita con fotos.', 7, false),
 (3,  'Toma de medidas',
      'Medición en sitio de los espacios indicados.',
      'Venue, qué medir.',
@@ -29,7 +29,7 @@ insert into public.task_types (position, name, description, needs, delivers, min
 (6,  'Overlay sobre el plano de rigging del venue',
      'Superposición del diseño sobre los puntos de rigging del venue.',
      'Plano de rigging, diseño o render.',
-     'Plano con overlay y cargas.', 5, false),
+     'Plano con overlay y cargas.', 3, false),
 (7,  'Documento de requirements para el proveedor',
      'Documento técnico para pedir cotización a proveedores.',
      'Propuesta aprobada, planos.',
@@ -49,7 +49,7 @@ insert into public.task_types (position, name, description, needs, delivers, min
 (11, 'Specs de contenidos por superficie',
      'Pixel map, resolución, relación de aspecto y formato por superficie.',
      'Datos del proveedor, planos.',
-     'Ficha de specs para diseño y cliente.', 5, false),
+     'Ficha de specs para diseño y cliente.', 3, false),
 (12, 'Validación técnica de contenidos antes de montaje',
      'Chequeo de archivos finales contra specs.',
      'Archivos finales, specs.',
