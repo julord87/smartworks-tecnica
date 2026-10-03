@@ -39,7 +39,10 @@ Copiar `.env.example` a `.env.local` y completar.
 
 ## Acceso
 
-- Login por enlace mágico al correo.
+- Login por enlace mágico al correo, o con contraseña si el usuario tiene una asignada
+  (desde Supabase > Authentication > Users > Send password recovery / Update password).
+- El enlace funciona con la plantilla propia (`token_hash`, cualquier dispositivo) y también con la
+  plantilla por defecto de Supabase (`code` PKCE, solo en el navegador donde se pidió).
 - Se aceptan direcciones `@smartworks.es` y las que Técnica cargue en la tabla `allowed_emails`.
   El control está en la base de datos (trigger de alta en `auth.users`), no solo en la app.
 - Quitar un correo de `allowed_emails` impide nuevas altas, pero no borra una cuenta ya creada:
