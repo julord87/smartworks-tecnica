@@ -37,14 +37,17 @@ Etapas mergeadas en `main`, todas en producción:
 Producción: único usuario `julian@smartworks.es` (Técnica). Usuarios de prueba ya borrados. Sin datos de ejemplo.
 
 ## Pendientes
-- **Correo**: el usuario tiene que crear la API key en Resend (dominio verificado, sugerido `tecnica.smartworks.es`)
-  y cargar `RESEND_API_KEY` (Sensitive) en Vercel. `EMAIL_FROM` ya está cargado; revisar que use el dominio verificado.
-  Cuando avise: redeploy de producción y probar un envío real (por ejemplo, pasar una tarea a "falta información").
+- **Correo (EN PAUSA, lo decide el jefe del usuario; no insistir)**: Resend con dominio verificado
+  (sugerido `tecnica.smartworks.es`), `RESEND_API_KEY` (Sensitive) en Vercel, SMTP propio en Supabase Auth.
+  Recién con SMTP propio Supabase deja editar las plantillas: pegar `supabase/templates/*.html` (Magic Link y
+  Confirm signup, asunto "Tu enlace de acceso a Técnica Smartworks"). Después: redeploy y probar un envío real.
   Nunca pedir ni aceptar la clave por chat.
-- **Supabase Auth (lo hace el usuario en el panel)**: Site URL = URL de prod, Redirect URLs, plantillas
-  `supabase/templates/*.html`, SMTP propio con Resend, activar "leaked password protection".
-- **Seguridad**: el usuario pegó en el chat la secret key de Supabase y su contraseña: recordarle rotar la key
-  y cambiar la contraseña si no lo confirmó. Nunca usar ni guardar esa key.
+- Sin SMTP propio, Supabase no envía enlaces a cualquier usuario: hoy se entra con contraseña.
+  Ofrecido y sin respuesta: botón en Catálogo para que Técnica cree accesos con contraseña. No hacerlo sin que lo pida.
+- **Supabase Auth**: Site URL de prod ya cargada (2026-10-03). Pendiente para después (el usuario lo hace):
+  activar "leaked password protection".
+- **Seguridad (para después)**: el usuario pegó en el chat la secret key de Supabase y su contraseña: rotar la key
+  y cambiar la contraseña. Recordarlo una vez por sesión, sin insistir. Nunca usar ni guardar esa key.
 - **awesome-claude-skills**: es una lista; esperar que el usuario elija skills concretos.
 - Ideas no pedidas: no hacerlas sin que el usuario las pida.
 
