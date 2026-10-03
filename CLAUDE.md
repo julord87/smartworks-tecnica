@@ -13,5 +13,6 @@
   (`bjsnhwtlwffarvulnmee`). La herramienta de Supabase se cuelga con `DROP`: evitarlo (usar
   `create or replace`, envoltorios o columnas nuevas).
 - Pruebas antes de cerrar: `supabase/tests/rls_test.sql` en Postgres local, `tsc`, `next build`,
-  e2e con Playwright contra el mock respaldado por Postgres.
+  e2e con Playwright contra el mock respaldado por Postgres (todo junto: `e2e/run.sh`).
+- Al empezar una sesión: skill `continuar` (`.claude/skills/continuar/SKILL.md`); actualizarlo al cerrar cada etapa.
 - Sin datos reales de clientes en seeds ni pruebas.
