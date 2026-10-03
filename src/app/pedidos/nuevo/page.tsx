@@ -5,7 +5,8 @@ import { NewRequestForm } from "./new-request-form";
 
 export const metadata = { title: "Nuevo pedido · Técnica Smartworks" };
 
-export default async function NewRequestPage() {
+export default async function NewRequestPage({ searchParams }: { searchParams: Promise<{ proyecto?: string }> }) {
+  const { proyecto } = await searchParams;
   const profile = await requireProfile();
   const supabase = await createClient();
 
@@ -30,6 +31,7 @@ export default async function NewRequestPage() {
         taskTypes={(types.data ?? []) as TaskType[]}
         projects={(projects.data ?? []) as ProjectOption[]}
         people={(people.data ?? []) as PersonOption[]}
+        initialProjectId={proyecto}
       />
     </main>
   );

@@ -10,6 +10,9 @@ Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage)
 | `/login` | todos | Acceso por enlace al correo o contraseña |
 | `/pedidos` | todos | Mis pedidos: los propios y los de proyectos donde soy PM, con estado y fecha por tarea; primero lo que espera mi respuesta |
 | `/bandeja` | Técnica | Todas las tareas por urgencia; resumen (vencidas, hoy, 7 días, esperando info, sin responsable) y filtros por estado, fecha, proyecto y responsable (en la URL) |
+| `/tareas/[id]` | todos | Detalle de la tarea: qué falta, entregables (versionados), adjuntos, historial, responder/comentar con adjuntos. Técnica: cambiar estado (nota obligatoria en *falta información*), responsable, fecha límite, subir entregable (archivo o enlace, opción de marcar entregada) y, en pedidos "No sé qué necesito", agregar tareas |
+| `/proyectos/[id]` | todos | Datos (editables por PM, creador o Técnica), tareas por pedido, entregables, adjuntos e historial; atajo a nuevo pedido con el proyecto elegido |
+| `/api/archivo` | todos | Descarga: genera una URL firmada de 60 s y redirige |
 | `/pedidos/nuevo` | todos | Nuevo pedido: proyecto (existente o nuevo), tareas del catálogo con fecha límite y notas, adjuntos con tipo, comentario |
 | `/cuenta` | todos | Datos del usuario y cambio de contraseña |
 | `/api/cron/notificaciones` | pg_cron | Envía la cola de notificaciones (requiere `CRON_SECRET`) |
