@@ -19,6 +19,7 @@ import {
 import { createRequest, registerAttachments, type UploadedFile } from "./actions";
 
 type Props = {
+  initialProjectId?: string;
   currentUserId: string;
   taskTypes: TaskType[];
   projects: ProjectOption[];
@@ -40,10 +41,11 @@ const SECTION_TITLE = "mb-1 text-sm font-bold uppercase tracking-wide text-sw-bl
 const MAX_MB = 100;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function NewRequestForm({ currentUserId, taskTypes, projects, people }: Props) {
+export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, projects, people }: Props) {
   const today = todayISO();
+  const preset = projects.some((p) => p.id === initialProjectId) ? initialProjectId! : "";
   const [mode, setMode] = useState<"existente" | "nuevo">(projects.length ? "existente" : "nuevo");
-  const [projectId, setProjectId] = useState("");
+  const [projectId, setProjectId] = useState(preset);
   const [newProject, setNewProject] = useState({
     name: "",
     client: "",

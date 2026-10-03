@@ -108,7 +108,10 @@ export default async function MyRequestsPage() {
             <section key={g.id} className="border border-line" aria-label={`Pedido de ${g.projectName}`}>
               <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line bg-zebra px-4 py-3">
                 <h2 className="font-bold">
-                  {g.projectName} <span className="font-normal text-muted">· {g.client}</span>
+                  <Link href={`/proyectos/${g.projectId}`} className="underline-offset-4 hover:underline">
+                    {g.projectName}
+                  </Link>{" "}
+                  <span className="font-normal text-muted">· {g.client}</span>
                 </h2>
                 <p className="text-sm text-muted">
                   Pedido {shortDate(g.createdAt.slice(0, 10))}

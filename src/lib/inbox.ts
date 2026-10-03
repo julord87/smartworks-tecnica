@@ -10,6 +10,7 @@ export type InboxRow = {
   assignee_id: string | null;
   created_at: string;
   updated_at: string;
+  task_type_id: string;
   task_type_name: string;
   min_days: number;
   request_id: string;
@@ -27,7 +28,7 @@ export type InboxRow = {
 };
 
 export const INBOX_COLUMNS =
-  "id,status,due_date,days_left,notes,assignee_id,created_at,updated_at,task_type_name,min_days,request_id,requested_by,project_id,project_name,client,event_date,status_note,venue,supplier,pm_id,request_created_at,task_type_position";
+  "id,status,due_date,days_left,notes,assignee_id,created_at,updated_at,task_type_id,task_type_name,min_days,request_id,requested_by,project_id,project_name,client,event_date,status_note,venue,supplier,pm_id,request_created_at,task_type_position";
 
 export const OPEN_STATUSES: TaskStatus[] = ["recibida", "falta_informacion", "en_curso"];
 
