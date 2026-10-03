@@ -112,9 +112,18 @@ Corre dentro de una transacción que se descarta. Cada comprobación imprime `ok
 
 ## Proyecto remoto
 
+- Supabase: proyecto `smartworks-tecnica` (ref `bjsnhwtlwffarvulnmee`, región eu-west-2).
+  Migraciones 0001-0005 aplicadas; sin datos de ejemplo.
+- Vercel: proyecto `tecnica-smartworks`, producción en `https://tecnica-smartworks.vercel.app` (rama `main`).
+  Variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clave publishable) y `NEXT_PUBLIC_SITE_URL` cargadas.
+
+Las migraciones se aplicaron con el conector de Supabase, que registra su propia versión en el historial.
+Antes de usar `supabase db push` por primera vez, alinear el historial:
+
 ```bash
-supabase link --project-ref <ref>
-supabase db push        # aplica migraciones (no carga seed.sql)
+supabase link --project-ref bjsnhwtlwffarvulnmee
+supabase migration list            # comparar local y remoto
+supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005
 ```
 
 ## Deploy en Vercel
