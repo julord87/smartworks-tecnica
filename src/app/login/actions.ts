@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -25,8 +26,9 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
     email,
     options: {
       shouldCreateUser: true,
-      // La plantilla de correo arma el enlace a /auth/confirm con token_hash (ver supabase/templates)
-      emailRedirectTo: siteUrl,
+      // Con la plantilla propia el enlace va a /auth/confirm con token_hash (ver supabase/templates).
+      // Con la plantilla por defecto de Supabase vuelve aqui con ?code= (PKCE, mismo navegador).
+      emailRedirectTo: `${siteUrl}/auth/confirm`,
     },
   });
 
@@ -47,4 +49,29 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
   }
 
   return { status: "sent", email };
+}
+
+export async function signInWithPassword(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!EMAIL_RE.test(email) || !password) {
+    return { status: "error", message: "Escribe tu correo y tu contraseña.", email };
+  }
+  if (!isSupabaseConfigured) {
+    return { status: "error", message: "La app todavía no está conectada a Supabase.", email };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    if (error.status === 429) {
+      return { status: "error", message: "Demasiados intentos. Espera un minuto y vuelve a probar.", email };
+    }
+    // Mismo mensaje para correo inexistente o clave incorrecta
+    return { status: "error", message: "Correo o contraseña incorrectos.", email };
+  }
+
+  redirect("/");
 }
