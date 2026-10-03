@@ -33,11 +33,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     .maybeSingle<Project>();
   if (!project) notFound();
 
-  const [{ data: tasksData }, { data: reqData }, { data: people }] = await Promise.all([
+  const [{ data: tasksData }, { data: reqData }, { data: people }, { data: pmRows }] = await Promise.all([
     supabase.from("task_inbox").select(INBOX_COLUMNS).eq("project_id", id),
     supabase.from("requests").select("id, requested_by, comment, created_at").eq("project_id", id).order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name, email"),
+    supabase.from("project_managers").select("profile_id").eq("project_id", id).order("created_at"),
   ]);
+  const pmIds = (pmRows ?? []).map((m) => m.profile_id as string);
   const tasks = (tasksData ?? []) as InboxRow[];
   const requests = (reqData ?? []) as Request[];
   const persons = (people ?? []) as PersonOption[];
@@ -64,7 +66,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const history = (events.data ?? []) as { id: string; task_id: string; author_id: string | null; kind: string; from_status: TaskStatus | null; to_status: TaskStatus | null; body: string | null; created_at: string }[];
   const taskName = new Map(tasks.map((t) => [t.id, t.task_type_name]));
 
-  const canEdit = profile.role === "tecnica" || project.pm_id === profile.id || project.created_by === profile.id;
+  const canEdit = profile.role === "tecnica" || pmIds.includes(profile.id) || project.created_by === profile.id;
   const openCount = tasks.filter((t) => isOpen(t.status)).length;
 
   return (
@@ -94,8 +96,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <dd className="font-semibold">{project.supplier ?? "Sin definir"}</dd>
           </div>
           <div>
-            <dt className="text-muted">PM</dt>
-            <dd className="font-semibold">{name(project.pm_id)}</dd>
+            <dt className="text-muted">{pmIds.length > 1 ? "PMs" : "PM"}</dt>
+            <dd className="font-semibold">{pmIds.map(name).join(", ")}</dd>
           </div>
         </dl>
         {canEdit && (
@@ -108,9 +110,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 event_date: project.event_date ?? "",
                 venue: project.venue ?? "",
                 supplier: project.supplier ?? "",
-                pm_id: project.pm_id,
+                pm_ids: pmIds,
               }}
-              people={persons.map((p) => ({ id: p.id, label: personLabel(p) }))}
+              people={persons}
+              currentUserId={profile.id}
             />
           </div>
         )}

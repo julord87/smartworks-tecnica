@@ -29,10 +29,10 @@ export default async function MyRequestsPage() {
   // Pedidos propios y los de proyectos donde soy PM
   const [{ data: mine }, { data: pmProjects }, { data: people }] = await Promise.all([
     supabase.from("requests").select("id").eq("requested_by", profile.id),
-    supabase.from("projects").select("id").eq("pm_id", profile.id),
+    supabase.from("project_managers").select("project_id").eq("profile_id", profile.id),
     supabase.from("profiles").select("id, full_name, email"),
   ]);
-  const projectIds = (pmProjects ?? []).map((p) => p.id as string);
+  const projectIds = (pmProjects ?? []).map((p) => p.project_id as string);
   const { data: fromProjects } = projectIds.length
     ? await supabase.from("requests").select("id").in("project_id", projectIds)
     : { data: [] as { id: string }[] };

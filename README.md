@@ -11,7 +11,7 @@ Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage)
 | `/pedidos` | todos | Mis pedidos: los propios y los de proyectos donde soy PM, con estado y fecha por tarea; primero lo que espera mi respuesta |
 | `/bandeja` | Técnica | Todas las tareas por urgencia; resumen (vencidas, hoy, 7 días, esperando info, sin responsable) y filtros por estado, fecha, proyecto y responsable (en la URL) |
 | `/tareas/[id]` | todos | Detalle de la tarea: qué falta, entregables (versionados), adjuntos, historial, responder/comentar con adjuntos. Técnica: cambiar estado (nota obligatoria en *falta información*), responsable, fecha límite, subir entregable (archivo o enlace, opción de marcar entregada) y, en pedidos "No sé qué necesito", agregar tareas |
-| `/proyectos/[id]` | todos | Datos (editables por PM, creador o Técnica), tareas por pedido, entregables, adjuntos e historial; atajo a nuevo pedido con el proyecto elegido |
+| `/proyectos/[id]` | todos | Datos y PMs (editables por cualquiera de sus PM, quien lo creó o Técnica), tareas por pedido, entregables, adjuntos e historial; atajo a nuevo pedido con el proyecto elegido |
 | `/api/archivo` | todos | Descarga: genera una URL firmada de 60 s y redirige |
 | `/pedidos/nuevo` | todos | Nuevo pedido: proyecto (existente o nuevo), tareas del catálogo con fecha límite y notas, adjuntos con tipo, comentario |
 | `/cuenta` | todos | Datos del usuario y cambio de contraseña |
@@ -31,9 +31,9 @@ Se avisa solo cuando hay algo que hacer o algo nuevo que ver:
 | Evento | A quién |
 |---|---|
 | Pedido nuevo | Técnica |
-| Tarea pasa a *falta información* (con lo que falta) | Solicitante, PM del proyecto, copias del pedido |
-| Tarea *entregada* (con el entregable) | Solicitante, PM, copias |
-| Tarea *cancelada* | Solicitante, PM, copias |
+| Tarea pasa a *falta información* (con lo que falta) | Solicitante, PMs del proyecto, copias del pedido |
+| Tarea *entregada* (con el entregable) | Solicitante, PMs, copias |
+| Tarea *cancelada* | Solicitante, PMs, copias |
 | El solicitante comenta o adjunta en una tarea en *falta información* | Responsable de la tarea (o Técnica si no tiene) |
 | Resumen diario (solo si hay algo): vencidas, vencen hoy/mañana, esperando info 2+ días | Técnica |
 
@@ -112,7 +112,8 @@ Copiar `.env.example` a `.env.local` y completar.
   - Cualquiera crea proyectos y pedidos (a su nombre).
   - Tareas: el solicitante en sus pedidos; Técnica solo en pedidos con "No sé qué necesito".
   - Estado, responsable, notas y fecha de una tarea: solo Técnica. El responsable debe tener rol `tecnica`.
-  - Adjuntos y comentarios: miembros del proyecto (PM, creador, quien tiene un pedido en él, Técnica).
+  - Proyecto y su lista de PM (`project_managers`, varios por proyecto, al menos uno): sus PM, quien lo creó y Técnica.
+  - Adjuntos y comentarios: miembros del proyecto (PMs, creador, quien tiene un pedido en él, Técnica).
   - Entregables, catálogo y allowlist: solo Técnica.
   - Historial (`task_events`): inmutable. Los cambios de estado los registra un trigger con autor y fecha.
   - Pasar a "falta información" exige escribir qué falta.
@@ -168,7 +169,7 @@ Corre dentro de una transacción que se descarta. Cada comprobación imprime `ok
 ## Proyecto remoto
 
 - Supabase: proyecto `smartworks-tecnica` (ref `bjsnhwtlwffarvulnmee`, región eu-west-2).
-  Migraciones 0001-0011 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
+  Migraciones 0001-0012 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
 - Vercel: proyecto `tecnica-smartworks`, producción en `https://tecnica-smartworks.vercel.app` (rama `main`).
   Variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clave publishable) y `NEXT_PUBLIC_SITE_URL` cargadas.
 
@@ -178,7 +179,7 @@ Antes de usar `supabase db push` por primera vez, alinear el historial:
 ```bash
 supabase link --project-ref bjsnhwtlwffarvulnmee
 supabase migration list            # comparar local y remoto
-supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006 20261003000007 20261003000008 20261003000009 20261003000010 20261003000011
+supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006 20261003000007 20261003000008 20261003000009 20261003000010 20261003000011 20261003000012
 ```
 
 ## Deploy en Vercel

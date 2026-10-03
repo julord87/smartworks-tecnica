@@ -33,6 +33,7 @@ Etapas mergeadas en `main`, todas en producción:
 5. Mis pedidos y Bandeja de Técnica - PR #5
 6. Páginas de Tarea y Proyecto - PR #6
 7. Cómo trabajamos (`content/como-trabajamos.md`) y Catálogo (`/catalogo`) - PR #7
+8. Varios PM por proyecto (`project_managers`; editan PMs y proyecto: sus PM, el creador y Técnica) - migración 0012
 
 Producción: único usuario `julian@smartworks.es` (Técnica). Usuarios de prueba ya borrados. Sin datos de ejemplo.
 
