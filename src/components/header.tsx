@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SignOut } from "@phosphor-icons/react/dist/ssr";
+import { SignOut, UserCircle } from "@phosphor-icons/react/dist/ssr";
 import { getProfile } from "@/lib/auth";
 import { NavLinks } from "./nav-links";
 
@@ -37,10 +37,13 @@ export async function Header() {
           </Link>
           <NavLinks links={links} />
           <div className="ml-auto flex items-center gap-4 py-3 text-sm">
-            <span className="hidden text-white/80 md:inline">
-              {profile.full_name ?? profile.email}
-              {isTecnica && <span className="ml-2 font-semibold text-white">Técnica</span>}
-            </span>
+            <Link href="/cuenta" className="inline-flex items-center gap-1.5 text-white/85 hover:text-white" aria-label="Mi cuenta">
+              <UserCircle size={20} weight="bold" />
+              <span className="hidden md:inline">
+                {profile.full_name ?? profile.email}
+                {isTecnica && <span className="ml-2 font-semibold text-white">Técnica</span>}
+              </span>
+            </Link>
             <form action="/auth/signout" method="post">
               <button type="submit" className="inline-flex items-center gap-1.5 text-white/90 hover:text-white" aria-label="Salir">
                 <SignOut size={18} weight="bold" />

@@ -205,6 +205,49 @@ select pg_temp.check(
 update public.task_types set min_days = 4 where position = 12;
 select pg_temp.check((select min_days from public.task_types where position = 12) = 4, 'Tecnica edita catalogo');
 
+-- ---------------------------------------------------------------- create_request
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+create temp table cr as
+select public.create_request(
+  null,
+  '{"name":"Feria Prueba","client":"Cliente Prueba","event_date":"2030-05-01","venue":"Pabellón 3"}',
+  'comentario',
+  (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 10, 'notes', 'n'))
+   from public.task_types where position in (0, 3))
+) as r;
+select pg_temp.check(
+  (select count(*) from public.tasks where request_id = ((select r from cr) ->> 'request_id')::uuid) = 2,
+  'create_request crea proyecto, pedido y tareas');
+select pg_temp.check(
+  (select pm_id from public.projects where id = ((select r from cr) ->> 'project_id')::uuid) = '00000000-0000-0000-0000-0000000000b2',
+  'create_request: PM por defecto es quien pide');
+select pg_temp.check(
+  (select count(*) from public.task_events e join public.tasks t on t.id = e.task_id
+   where t.request_id = ((select r from cr) ->> 'request_id')::uuid and e.kind = 'creacion') = 2,
+  'create_request deja historial de alta');
+select public.create_request('10000000-0000-0000-0000-000000000001', null, null,
+  (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 3)) from public.task_types where position = 5));
+select pg_temp.check(true, 'create_request sobre proyecto existente ajeno');
+select pg_temp.expect_error(
+  $$select public.create_request('10000000-0000-0000-0000-000000000001', null, null, '[]')$$,
+  'create_request exige al menos una tarea');
+select pg_temp.expect_error(
+  $$select public.create_request('10000000-0000-0000-0000-000000000001', null, null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date - 1)) from public.task_types where position = 5))$$,
+  'create_request rechaza fecha pasada');
+select pg_temp.expect_error(
+  $$select public.create_request('10000000-0000-0000-0000-000000000001', null, null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', tt.id, 'due_date', current_date + 5)) from public.task_types tt cross join generate_series(1, 2) where tt.position = 5))$$,
+  'create_request rechaza tareas repetidas');
+select pg_temp.expect_error(
+  $$select public.create_request(null, '{"name":"","client":"x"}', null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 5)) from public.task_types where position = 5))$$,
+  'create_request exige nombre de proyecto');
+select pg_temp.expect_error(
+  $$select public.create_request(gen_random_uuid(), null, null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 5)) from public.task_types where position = 5))$$,
+  'create_request rechaza proyecto inexistente');
+
 -- ---------------------------------------------------------------- anon
 reset role;
 set local role anon;

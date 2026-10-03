@@ -3,6 +3,18 @@
 Puerta de entrada única para pedir trabajo al área de Producción Técnica.
 Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage), deploy en Vercel.
 
+## Pantallas
+
+| Ruta | Quién | Qué hace |
+|---|---|---|
+| `/login` | todos | Acceso por enlace al correo o contraseña |
+| `/pedidos/nuevo` | todos | Nuevo pedido: proyecto (existente o nuevo), tareas del catálogo con fecha límite y notas, adjuntos con tipo, comentario |
+| `/cuenta` | todos | Datos del usuario y cambio de contraseña |
+
+El pedido se crea en una sola transacción (`create_request`, con RLS). Los adjuntos se suben desde el
+navegador directo a Storage (sin pasar por el servidor de la app, sin límite de tamaño de Vercel) y después
+se registran en `attachments`. Si un archivo falla, el pedido queda creado y se avisa cuál faltó.
+
 ## Estructura
 
 ```
@@ -117,7 +129,7 @@ Corre dentro de una transacción que se descarta. Cada comprobación imprime `ok
 ## Proyecto remoto
 
 - Supabase: proyecto `smartworks-tecnica` (ref `bjsnhwtlwffarvulnmee`, región eu-west-2).
-  Migraciones 0001-0006 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
+  Migraciones 0001-0007 aplicadas; sin datos de ejemplo. `julian@smartworks.es` pre-asignado como Técnica.
 - Vercel: proyecto `tecnica-smartworks`, producción en `https://tecnica-smartworks.vercel.app` (rama `main`).
   Variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clave publishable) y `NEXT_PUBLIC_SITE_URL` cargadas.
 
@@ -127,7 +139,7 @@ Antes de usar `supabase db push` por primera vez, alinear el historial:
 ```bash
 supabase link --project-ref bjsnhwtlwffarvulnmee
 supabase migration list            # comparar local y remoto
-supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006
+supabase migration repair --status applied 20261003000001 20261003000002 20261003000003 20261003000004 20261003000005 20261003000006 20261003000007
 ```
 
 ## Deploy en Vercel
