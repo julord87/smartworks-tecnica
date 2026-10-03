@@ -45,8 +45,6 @@ Producción: único usuario `julian@smartworks.es` (Técnica). Usuarios de prueb
   `supabase/templates/*.html`, SMTP propio con Resend, activar "leaked password protection".
 - **Seguridad**: el usuario pegó en el chat la secret key de Supabase y su contraseña: recordarle rotar la key
   y cambiar la contraseña si no lo confirmó. Nunca usar ni guardar esa key.
-- **Codex**: necesita en el entorno cloud (Network access > Custom) `api.openai.com`, `chatgpt.com`, `auth.openai.com`
-  y después `codex login`.
 - **awesome-claude-skills**: es una lista; esperar que el usuario elija skills concretos.
 - Ideas no pedidas: no hacerlas sin que el usuario las pida.
 
@@ -66,14 +64,12 @@ Interfaz en español rioplatense neutro ("podés", "elegí").
 
 ## Herramientas del usuario (se pierden al cambiar de contenedor; reinstalar si las pide)
 ```bash
-claude plugin marketplace add openai/codex-plugin-cc && claude plugin install codex@openai-codex --scope user
-npm install -g @openai/codex
 claude plugin marketplace add DietrichGebert/ponytail && claude plugin install ponytail@ponytail --scope user
 claude plugin marketplace add asklokesh/loki-mode && claude plugin install loki-mode@loki-mode --scope user
 npm install -g loki-mode
 npx -y skills add https://github.com/vercel-labs/skills --skill find-skills -y -g
 ```
-Nombres verificados: `codex@openai-codex`, `ponytail@ponytail`, `loki-mode@loki-mode`.
+Nombres verificados: `ponytail@ponytail`, `loki-mode@loki-mode`. OpenAI/Codex descartado por el usuario: no reinstalar.
 
 ## Reglas fijas
 - Commits terminan con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` y la línea `Claude-Session` de la sesión actual.
