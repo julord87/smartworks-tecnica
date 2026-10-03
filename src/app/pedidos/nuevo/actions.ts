@@ -6,7 +6,7 @@ import type { AttachmentKind } from "@/lib/domain";
 
 export type NewRequestInput = {
   projectId: string | null;
-  newProject: { name: string; client: string; event_date: string; venue: string; supplier: string; pm_id: string } | null;
+  newProject: { name: string; client: string; event_date: string; venue: string; supplier: string; pm_ids: string[] } | null;
   comment: string;
   watchers: string[];
   tasks: { task_type_id: string; due_date: string; notes: string }[];
@@ -20,6 +20,8 @@ export async function createRequest(input: NewRequestInput): Promise<CreateResul
   const supabase = await createClient();
 
   if (input.tasks.length === 0) return { ok: false, error: "Marca al menos una tarea." };
+  const pmIds = [...new Set(input.newProject?.pm_ids ?? [])];
+  if (input.newProject && pmIds.length === 0) return { ok: false, error: "El proyecto necesita al menos un PM." };
 
   // "No se que necesito" exige adjuntos
   const { data: discovery } = await supabase.from("task_types").select("id").eq("is_discovery", true);
@@ -30,7 +32,7 @@ export async function createRequest(input: NewRequestInput): Promise<CreateResul
 
   const { data, error } = await supabase.rpc("create_request", {
     p_project_id: input.projectId,
-    p_new_project: input.newProject,
+    p_new_project: input.newProject && { ...input.newProject, pm_ids: undefined, pm_id: pmIds[0] },
     p_comment: input.comment,
     p_tasks: input.tasks,
     p_watchers: input.watchers,
@@ -44,6 +46,13 @@ export async function createRequest(input: NewRequestInput): Promise<CreateResul
   }
 
   const r = data as { project_id: string; request_id: string };
+  // ponytail: PM extra en un segundo paso; si falla, el proyecto queda con el primero y se corrige en su página
+  if (pmIds.length > 1) {
+    const { error: pmError } = await supabase
+      .from("project_managers")
+      .insert(pmIds.slice(1).map((profile_id) => ({ project_id: r.project_id, profile_id })));
+    if (pmError) console.error("project_managers", pmError);
+  }
   return { ok: true, projectId: r.project_id, requestId: r.request_id };
 }
 

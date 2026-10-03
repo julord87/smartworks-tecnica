@@ -3,12 +3,24 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { PmList } from "@/components/pm-list";
+import type { PersonOption } from "@/lib/domain";
 import { updateProject, type ProjectFields } from "./actions";
 
 const INPUT =
   "min-h-11 w-full border border-ink/40 bg-white px-3 text-base outline-none focus:border-sw-blue focus:ring-1 focus:ring-sw-blue";
 
-export function ProjectForm({ id, initial, people }: { id: string; initial: ProjectFields; people: { id: string; label: string }[] }) {
+export function ProjectForm({
+  id,
+  initial,
+  people,
+  currentUserId,
+}: {
+  id: string;
+  initial: ProjectFields;
+  people: PersonOption[];
+  currentUserId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(initial);
   const [error, setError] = useState("");
@@ -51,17 +63,8 @@ export function ProjectForm({ id, initial, people }: { id: string; initial: Proj
       {field("event_date", "Fecha del evento", "date")}
       {field("venue", "Venue")}
       {field("supplier", "Proveedor técnico")}
-      <div className="flex flex-col gap-2">
-        <label htmlFor="pf-pm" className="text-sm font-semibold">
-          PM responsable
-        </label>
-        <select id="pf-pm" value={f.pm_id} onChange={(e) => setF({ ...f, pm_id: e.target.value })} className={INPUT}>
-          {people.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+      <div className="md:col-span-2">
+        <PmList id="pf-pm" value={f.pm_ids} onChange={(ids) => setF({ ...f, pm_ids: ids })} people={people} currentUserId={currentUserId} />
       </div>
       <div className="flex flex-wrap items-center gap-3 md:col-span-2">
         <Button type="submit" disabled={pending}>

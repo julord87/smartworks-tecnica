@@ -3,13 +3,13 @@
 import { useMemo, useRef, useState } from "react";
 import { CheckCircle, Paperclip, Trash, WarningCircle, X } from "@phosphor-icons/react";
 import { Button, buttonClass } from "@/components/ui/button";
+import { PmList } from "@/components/pm-list";
 import { createClient } from "@/lib/supabase/client";
 import { addDays, daysBetween, shortDate, todayISO } from "@/lib/dates";
 import {
   ATTACHMENT_KINDS,
   STORAGE_BUCKET,
   guessKind,
-  personLabel,
   safeFileName,
   type AttachmentKind,
   type PersonOption,
@@ -52,7 +52,7 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
     event_date: "",
     venue: "",
     supplier: "",
-    pm_id: currentUserId,
+    pm_ids: [currentUserId],
   });
   const [watchers, setWatchers] = useState<string[]>([]);
   const [watcherDraft, setWatcherDraft] = useState("");
@@ -332,24 +332,13 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
                 className={INPUT}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="np-pm" className={LABEL}>
-                PM responsable
-              </label>
-              <select
-                id="np-pm"
-                value={newProject.pm_id}
-                onChange={(e) => setNewProject({ ...newProject, pm_id: e.target.value })}
-                className={INPUT}
-              >
-                {people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {personLabel(p)}
-                    {p.id === currentUserId ? " (yo)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PmList
+              id="np-pm"
+              value={newProject.pm_ids}
+              onChange={(ids) => setNewProject({ ...newProject, pm_ids: ids })}
+              people={people}
+              currentUserId={currentUserId}
+            />
           </div>
         )}
       </section>
@@ -513,7 +502,7 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
           Avisos por correo
         </h2>
         <p className="text-sm text-muted">
-          Te avisamos a ti y al PM del proyecto cuando una tarea queda en falta de información, se entrega o se cancela.
+          Te avisamos a ti y a los PM del proyecto cuando una tarea queda en falta de información, se entrega o se cancela.
           Si alguien más tiene que enterarse, agrégalo.
         </p>
         {watchers.length > 0 && (

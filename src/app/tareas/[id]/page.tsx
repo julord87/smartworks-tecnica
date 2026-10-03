@@ -33,7 +33,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const { data: task } = await supabase.from("task_inbox").select(INBOX_COLUMNS).eq("id", id).maybeSingle<InboxRow>();
   if (!task) notFound();
 
-  const [type, request, attachments, deliverables, events, people, watchers, siblings] = await Promise.all([
+  const [type, request, attachments, deliverables, events, people, watchers, siblings, pms] = await Promise.all([
     supabase.from("task_types").select("needs, delivers, is_discovery").eq("id", task.task_type_id).single(),
     supabase.from("requests").select("comment").eq("id", task.request_id).single(),
     supabase.from("attachments").select("*").or(`request_id.eq.${task.request_id},task_id.eq.${task.id}`).order("created_at"),
@@ -42,6 +42,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
     supabase.from("profiles").select("id, full_name, email, role"),
     supabase.from("request_watchers").select("email").eq("request_id", task.request_id),
     supabase.from("task_inbox").select("id, task_type_name, status, due_date").eq("request_id", task.request_id).neq("id", task.id),
+    supabase.from("project_managers").select("profile_id").eq("project_id", task.project_id).order("created_at"),
   ]);
 
   const persons = (people.data ?? []) as (PersonOption & { role: string })[];
@@ -176,8 +177,8 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               <dd>{shortDate(task.request_created_at)}</dd>
               <dt className="text-muted">Responsable</dt>
               <dd>{name(task.assignee_id) || <span className="text-muted">Sin asignar</span>}</dd>
-              <dt className="text-muted">PM</dt>
-              <dd>{name(task.pm_id)}</dd>
+              <dt className="text-muted">{(pms.data?.length ?? 0) > 1 ? "PMs" : "PM"}</dt>
+              <dd>{(pms.data ?? []).map((m) => name(m.profile_id as string)).join(", ")}</dd>
               {task.event_date && (
                 <>
                   <dt className="text-muted">Evento</dt>

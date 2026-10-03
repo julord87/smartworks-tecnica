@@ -10,12 +10,14 @@ export type ProjectFields = {
   event_date: string;
   venue: string;
   supplier: string;
-  pm_id: string;
+  pm_ids: string[];
 };
 
 export async function updateProject(id: string, f: ProjectFields): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireProfile();
   if (!f.name.trim() || !f.client.trim()) return { ok: false, error: "Nombre y cliente son obligatorios." };
+  const pmIds = [...new Set(f.pm_ids)];
+  if (pmIds.length === 0) return { ok: false, error: "El proyecto necesita al menos un PM." };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("projects")
@@ -25,7 +27,6 @@ export async function updateProject(id: string, f: ProjectFields): Promise<{ ok:
       event_date: f.event_date || null,
       venue: f.venue.trim() || null,
       supplier: f.supplier.trim() || null,
-      pm_id: f.pm_id,
     })
     .eq("id", id)
     .select("id");
@@ -33,7 +34,27 @@ export async function updateProject(id: string, f: ProjectFields): Promise<{ ok:
     console.error("updateProject", error);
     return { ok: false, error: "No se pudo guardar el proyecto." };
   }
-  if (!data?.length) return { ok: false, error: "Solo el PM, quien creó el proyecto o Técnica pueden editarlo." };
+  if (!data?.length) return { ok: false, error: "Solo los PM, quien creó el proyecto o Técnica pueden editarlo." };
+
+  // PM: primero se agregan los nuevos y después se quitan los que salen (nunca queda vacío)
+  const { data: current } = await supabase.from("project_managers").select("profile_id").eq("project_id", id);
+  const before = (current ?? []).map((m) => m.profile_id as string);
+  const added = pmIds.filter((p) => !before.includes(p));
+  const removed = before.filter((p) => !pmIds.includes(p));
+  if (added.length) {
+    const { error: e } = await supabase.from("project_managers").insert(added.map((profile_id) => ({ project_id: id, profile_id })));
+    if (e) {
+      console.error("project_managers insert", e);
+      return { ok: false, error: "Se guardaron los datos, pero no se pudieron agregar los PM." };
+    }
+  }
+  if (removed.length) {
+    const { error: e } = await supabase.from("project_managers").delete().eq("project_id", id).in("profile_id", removed);
+    if (e) {
+      console.error("project_managers delete", e);
+      return { ok: false, error: "Se guardaron los datos, pero no se pudieron quitar los PM." };
+    }
+  }
   revalidatePath(`/proyectos/${id}`);
   return { ok: true };
 }

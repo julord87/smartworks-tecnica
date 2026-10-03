@@ -26,6 +26,15 @@ begin
   raise exception 'FALLA: se esperaba error: %', msg;
 end $$;
 
+-- Filas actualizadas al cambiar el venue de un proyecto (0 si RLS lo impide)
+create or replace function pg_temp.set_venue(p uuid, v text) returns int language plpgsql as $$
+declare n int;
+begin
+  update public.projects set venue = v where id = p;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
 grant execute on all functions in schema pg_temp to authenticated;
 
 -- ---------------------------------------------------------------- dominio
@@ -377,6 +386,56 @@ select pg_temp.check(
   (select jsonb_array_length(d -> 'tasks') > 0 and d -> 'recipients' ? 'tecnica@smartworks.es'
    from (select public.tecnica_digest('secreto-de-prueba', current_date + 30) as d) x),
   'resumen diario: tareas vencidas y destinatarios de Tecnica');
+set local role authenticated;
+
+-- ---------------------------------------------------------------- varios PM por proyecto
+-- Aurora (...01): PM y creadora Ana (b1). Marcos (b2) no es PM de Aurora.
+select pg_temp.check(
+  (select count(*) from public.project_managers where project_id = '10000000-0000-0000-0000-000000000001'
+     and profile_id = '00000000-0000-0000-0000-0000000000b1') = 1,
+  'PM existente pasa a project_managers');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+select pg_temp.expect_error(
+  $$insert into public.project_managers (project_id, profile_id)
+    values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b2')$$,
+  'quien no es PM ni creador no se agrega como PM');
+select pg_temp.check(
+  pg_temp.set_venue('10000000-0000-0000-0000-000000000001', 'X') = 0,
+  'quien no es PM no edita el proyecto');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
+insert into public.project_managers (project_id, profile_id)
+values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b2');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+select pg_temp.check(
+  pg_temp.set_venue('10000000-0000-0000-0000-000000000001', 'Palacio Norte') = 1,
+  'segundo PM edita el proyecto');
+select pg_temp.check(public.is_project_member('10000000-0000-0000-0000-000000000001'), 'segundo PM es miembro del proyecto');
+delete from public.project_managers
+where project_id = '10000000-0000-0000-0000-000000000001' and profile_id = '00000000-0000-0000-0000-0000000000b1';
+select pg_temp.check(
+  (select pm_id from public.projects where id = '10000000-0000-0000-0000-000000000001') = '00000000-0000-0000-0000-0000000000b2',
+  'un PM quita a otro; el principal pasa al que queda');
+select pg_temp.expect_error(
+  $$delete from public.project_managers where project_id = '10000000-0000-0000-0000-000000000001'$$,
+  'el proyecto no puede quedar sin PM');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
+select pg_temp.check(
+  pg_temp.set_venue('10000000-0000-0000-0000-000000000001', 'Palacio Norte 2') = 1,
+  'la creadora sigue editando aunque ya no sea PM');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into public.project_managers (project_id, profile_id)
+values ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000b1');
+select pg_temp.check(
+  (select count(*) from public.project_managers where project_id = '10000000-0000-0000-0000-000000000002') = 2,
+  'Técnica agrega PM a cualquier proyecto');
+reset role;
+delete from public.notifications;
+select public.enqueue_notification('cancelada', '20000000-0000-0000-0000-000000000002', null, null, null);
+select pg_temp.check(
+  (select count(*) from public.notifications where reason = 'pm'
+     and recipient in ('pm.ana@smartworks.es')) = 1
+  and (select count(*) from public.notifications where recipient = 'pm.marcos@smartworks.es') = 1,
+  'avisos a todos los PM del proyecto');
 set local role authenticated;
 
 -- ---------------------------------------------------------------- anon
