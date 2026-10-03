@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export type LoginState = { status: "idle" | "sent" | "error"; message?: string; email?: string };
 
@@ -11,6 +12,10 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
 
   if (!EMAIL_RE.test(email)) {
     return { status: "error", message: "Escribe un correo válido.", email };
+  }
+
+  if (!isSupabaseConfigured) {
+    return { status: "error", message: "La app todavía no está conectada a Supabase.", email };
   }
 
   const supabase = await createClient();

@@ -1,3 +1,4 @@
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { LoginForm } from "./login-form";
 
 const ERRORS: Record<string, string> = {
@@ -34,6 +35,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="max-w-md">
           <h2 className="text-lg font-bold">Entrar</h2>
           <p className="mt-1 mb-6 text-sm text-muted">Te enviamos un enlace de acceso a tu correo. Sin contraseña.</p>
+          {!isSupabaseConfigured && (
+            <p className="mb-6 border-l-4 border-sw-red bg-panel px-4 py-3 text-sm" role="status">
+              Configuración pendiente: faltan las variables de Supabase. El acceso se habilita al conectar la base de datos.
+            </p>
+          )}
           {error && ERRORS[error] && (
             <p className="mb-6 border-l-4 border-sw-red bg-panel px-4 py-3 text-sm" role="alert">
               {ERRORS[error]}

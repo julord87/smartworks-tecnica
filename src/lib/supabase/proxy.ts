@@ -1,10 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isSupabaseConfigured } from "./config";
 
 const PUBLIC_PATHS = ["/login", "/auth/confirm"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  if (!isSupabaseConfigured) {
+    if (request.nextUrl.pathname === "/login") return response;
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
