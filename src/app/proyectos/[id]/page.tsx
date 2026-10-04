@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { shortDate } from "@/lib/dates";
-import { ATTACHMENT_KINDS, STATUS_LABELS, personLabel, type PersonOption, type TaskStatus } from "@/lib/domain";
+import { ATTACHMENT_KINDS, CONTACT_COLUMNS, STATUS_LABELS, personLabel, type Contact, type PersonOption, type TaskStatus } from "@/lib/domain";
 import { INBOX_COLUMNS, isOpen, type InboxRow } from "@/lib/inbox";
 import { fileHref } from "@/lib/files";
 import { StatusBadge } from "@/components/status-badge";
 import { DueLabel } from "@/components/due-label";
 import { buttonClass } from "@/components/ui/button";
 import { ProjectForm } from "./project-form";
+import { ProjectContacts } from "./project-contacts";
 
 export const metadata = { title: "Proyecto · Técnica Smartworks" };
 
@@ -33,12 +34,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     .maybeSingle<Project>();
   if (!project) notFound();
 
-  const [{ data: tasksData }, { data: reqData }, { data: people }, { data: pmRows }] = await Promise.all([
+  const [{ data: tasksData }, { data: reqData }, { data: people }, { data: pmRows }, { data: contactRows }] = await Promise.all([
     supabase.from("task_inbox").select(INBOX_COLUMNS).eq("project_id", id),
     supabase.from("requests").select("id, requested_by, comment, created_at").eq("project_id", id).order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name, email"),
     supabase.from("project_managers").select("profile_id").eq("project_id", id).order("created_at"),
+    supabase.from("project_contacts").select(CONTACT_COLUMNS).eq("project_id", id).order("created_at"),
   ]);
+  const contacts = (contactRows ?? []) as Contact[];
   const pmIds = (pmRows ?? []).map((m) => m.profile_id as string);
   const tasks = (tasksData ?? []) as InboxRow[];
   const requests = (reqData ?? []) as Request[];
@@ -68,6 +71,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   const canEdit = profile.role === "tecnica" || pmIds.includes(profile.id) || project.created_by === profile.id;
   const openCount = tasks.filter((t) => isOpen(t.status)).length;
+  const isMember = canEdit || requests.some((r) => r.requested_by === profile.id);
+  const removable = contacts.filter((c) => isMember || c.created_by === profile.id).map((c) => c.id);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
@@ -184,6 +189,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </section>
 
         <aside className="grid content-start gap-8">
+          <section aria-labelledby="s-contactos">
+            <h2 id="s-contactos" className={TITLE}>
+              Contactos ({contacts.length})
+            </h2>
+            <ProjectContacts projectId={project.id} contacts={contacts} removable={removable} />
+          </section>
           <section aria-labelledby="s-entregables">
             <h2 id="s-entregables" className={TITLE}>
               Entregables ({deliverables.length})

@@ -7,6 +7,9 @@ import pg from "pg";
 pg.types.setTypeParser(1082, (v) => v);
 pg.types.setTypeParser(1184, (v) => new Date(v).toISOString());
 const pool = new pg.Pool({ host: "/var/tmp/pgtest", port: 5499, user: "postgres", database: "t" });
+// Arrays de enums (p. ej. contact_kind[]) como arrays JSON, igual que PostgREST
+for (const { typarray } of (await pool.query("select typarray from pg_type where typtype = 'e'")).rows)
+  pg.types.setTypeParser(typarray, (v) => v.slice(1, -1).split(",").filter(Boolean));
 const PASSWORD = "test1234";
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const tokens = {};

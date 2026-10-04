@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireTecnica, type Role } from "@/lib/auth";
+import { CONTACT_KINDS, type ContactKind } from "@/lib/domain";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -14,6 +15,7 @@ export type TaskTypeFields = {
   min_days: number;
   position: number;
   active: boolean;
+  required_contacts: ContactKind[];
 };
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -27,6 +29,7 @@ function clean(f: TaskTypeFields) {
     min_days: Math.max(0, Math.floor(Number(f.min_days) || 0)),
     position: Math.floor(Number(f.position) || 0),
     active: !!f.active,
+    required_contacts: [...new Set(f.required_contacts ?? [])].filter((k) => CONTACT_KINDS.some((c) => c.value === k)),
   };
 }
 

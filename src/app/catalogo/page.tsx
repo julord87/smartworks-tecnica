@@ -11,7 +11,7 @@ export default async function CatalogPage() {
   const me = await requireTecnica();
   const supabase = await createClient();
   const [{ data: types }, { data: emails }, { data: users }] = await Promise.all([
-    supabase.from("task_types").select("id, name, description, needs, delivers, min_days, position, active, is_discovery").order("position"),
+    supabase.from("task_types").select("id, name, description, needs, delivers, min_days, position, active, is_discovery, required_contacts").order("position"),
     supabase.from("allowed_emails").select("email, role, note, created_at").order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, email, full_name, role").order("email"),
   ]);

@@ -2,13 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import type { AttachmentKind } from "@/lib/domain";
+import type { AttachmentKind, ContactDraft } from "@/lib/domain";
 
 export type NewRequestInput = {
   projectId: string | null;
   newProject: { name: string; client: string; event_date: string; venue: string; supplier: string; pm_ids: string[] } | null;
   comment: string;
   watchers: string[];
+  contacts: ContactDraft[];
   tasks: { task_type_id: string; due_date: string; notes: string }[];
   fileCount: number;
 };
@@ -36,6 +37,7 @@ export async function createRequest(input: NewRequestInput): Promise<CreateResul
     p_comment: input.comment,
     p_tasks: input.tasks,
     p_watchers: input.watchers,
+    p_contacts: input.contacts,
   });
 
   if (error) {

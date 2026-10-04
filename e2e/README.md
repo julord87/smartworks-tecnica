@@ -5,7 +5,7 @@ seed reales, y `mock-pg.mjs`, un mock de Supabase (Auth, PostgREST, Storage, Res
 como el usuario logueado, con RLS real.
 
 ```bash
-e2e/run.sh                    # todas: pedido notif listas tarea catalogo pms
+e2e/run.sh                    # todas: pedido notif listas tarea catalogo pms contactos
 e2e/run.sh catalogo           # una
 ```
 

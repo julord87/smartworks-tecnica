@@ -34,6 +34,7 @@ Etapas mergeadas en `main`, todas en producción:
 6. Páginas de Tarea y Proyecto - PR #6
 7. Cómo trabajamos (`content/como-trabajamos.md`) y Catálogo (`/catalogo`) - PR #7
 8. Varios PM por proyecto (`project_managers`; editan PMs y proyecto: sus PM, el creador y Técnica) - migración 0012
+9. Contactos por proyecto (proveedor, cliente, venue, técnico del venue); cada tipo de tarea define cuáles exige (`required_contacts`, editable en Catálogo) - migración 0013
 
 Producción: único usuario `julian@smartworks.es` (Técnica). Usuarios de prueba ya borrados. Sin datos de ejemplo.
 

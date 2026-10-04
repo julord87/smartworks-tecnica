@@ -48,7 +48,7 @@ ok(JSON.stringify(w) === JSON.stringify(["pm.ana@smartworks.es", "rigging@smartw
 // Copia externa rechazada por la base
 await page.goto(BASE + "/pedidos/nuevo");
 await page.locator("#project").selectOption(proj.id);
-await page.locator("div.border", { has: page.getByText("Toma de medidas", { exact: true }) }).first().getByRole("checkbox").check();
+await page.locator("div.border", { has: page.getByText("Comparar y recomendar proveedor", { exact: true }) }).first().getByRole("checkbox").check();
 await page.locator("#watcher").fill("cliente@gmail.com");
 await page.getByRole("button", { name: "Enviar pedido" }).click();
 await page.getByText("Solo se pueden poner en copia correos internos: cliente@gmail.com").waitFor();

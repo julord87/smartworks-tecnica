@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
+import type { ContactDraft } from "@/lib/domain";
 
 export type ProjectFields = {
   name: string;
@@ -56,5 +57,42 @@ export async function updateProject(id: string, f: ProjectFields): Promise<{ ok:
     }
   }
   revalidatePath(`/proyectos/${id}`);
+  return { ok: true };
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const KINDS = ["proveedor", "cliente", "venue", "venue_tecnico"];
+
+export async function addContact(projectId: string, c: ContactDraft): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireProfile();
+  if (!KINDS.includes(c.kind) || !c.name.trim()) return { ok: false, error: "Faltan datos del contacto." };
+  if (!c.email.trim() && !c.phone.trim()) return { ok: false, error: "Pon al menos correo o teléfono." };
+  if (c.email.trim() && !EMAIL_RE.test(c.email.trim())) return { ok: false, error: "El correo no es válido." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_contacts").insert({
+    project_id: projectId,
+    kind: c.kind,
+    name: c.name.trim(),
+    company: c.company.trim() || null,
+    email: c.email.trim().toLowerCase() || null,
+    phone: c.phone.trim() || null,
+  });
+  if (error) {
+    console.error("addContact", error);
+    return { ok: false, error: "No se pudo agregar el contacto." };
+  }
+  revalidatePath(`/proyectos/${projectId}`);
+  return { ok: true };
+}
+
+export async function removeContact(projectId: string, contactId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("project_contacts").delete().eq("id", contactId).select("id");
+  if (error || !data?.length) {
+    if (error) console.error("removeContact", error);
+    return { ok: false, error: "No se pudo quitar el contacto." };
+  }
+  revalidatePath(`/proyectos/${projectId}`);
   return { ok: true };
 }

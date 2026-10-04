@@ -7,6 +7,7 @@ export type TaskType = {
   delivers: string;
   min_days: number;
   is_discovery: boolean;
+  required_contacts: ContactKind[];
 };
 
 export type ProjectOption = {
@@ -74,3 +75,21 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   entregada: "Entregada",
   cancelada: "Cancelada",
 };
+
+export const CONTACT_KINDS = [
+  { value: "proveedor", label: "Proveedor" },
+  { value: "cliente", label: "Cliente" },
+  { value: "venue", label: "Venue" },
+  { value: "venue_tecnico", label: "Técnico del venue" },
+] as const;
+
+export type ContactKind = (typeof CONTACT_KINDS)[number]["value"];
+
+export const CONTACT_LABEL: Record<ContactKind, string> = Object.fromEntries(
+  CONTACT_KINDS.map((k) => [k.value, k.label]),
+) as Record<ContactKind, string>;
+
+export type ContactDraft = { kind: ContactKind; name: string; company: string; email: string; phone: string };
+export type Contact = { id: string; project_id: string; kind: ContactKind; name: string; company: string | null; email: string | null; phone: string | null; created_by: string | null };
+
+export const CONTACT_COLUMNS = "id, project_id, kind, name, company, email, phone, created_by";
