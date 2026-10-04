@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import type { Role } from "@/lib/auth";
+import { CONTACT_KINDS, CONTACT_LABEL } from "@/lib/domain";
 import { addAllowedEmail, removeAllowedEmail, saveTaskType, setUserRole, type TaskTypeFields } from "./actions";
 
 const INPUT =
@@ -65,6 +66,12 @@ export function TaskTypeList({ types }: { types: TaskType[] }) {
                   <p className="mt-1 text-sm">
                     <span className="text-muted">Necesita:</span> {t.needs || "-"} · <span className="text-muted">Entrega:</span> {t.delivers || "-"} ·{" "}
                     <span className="text-muted">Plazo mínimo:</span> {t.min_days} días
+                    {t.required_contacts.length > 0 && (
+                      <>
+                        {" "}
+                        · <span className="text-muted">Contactos:</span> {t.required_contacts.map((k) => CONTACT_LABEL[k]).join(", ")}
+                      </>
+                    )}
                   </p>
                 </div>
                 <Button type="button" variant="ghost" className="justify-self-start px-0 sm:px-5" onClick={() => setEditing(t.id)} aria-label={`Editar ${t.name}`}>
@@ -79,7 +86,7 @@ export function TaskTypeList({ types }: { types: TaskType[] }) {
         {editing === "new" ? (
           <TaskTypeForm
             id={null}
-            initial={{ name: "", description: "", needs: "", delivers: "", min_days: 3, position: nextPos, active: true }}
+            initial={{ name: "", description: "", needs: "", delivers: "", min_days: 3, position: nextPos, active: true, required_contacts: [] }}
             onClose={() => setEditing(null)}
           />
         ) : (
@@ -101,6 +108,7 @@ function TaskTypeForm({ id, initial, onClose }: { id: string | null; initial: Ta
     min_days: initial.min_days,
     position: initial.position,
     active: initial.active,
+    required_contacts: initial.required_contacts ?? [],
   });
   const { error, pending, run } = useAction();
   const p = id ?? "nuevo";
@@ -142,6 +150,29 @@ function TaskTypeForm({ id, initial, onClose }: { id: string | null; initial: Ta
         </label>
         <input id={`tt-${p}-pos`} type="number" value={f.position} onChange={(e) => setF({ ...f, position: Number(e.target.value) })} className={INPUT} />
       </div>
+      <fieldset className="md:col-span-2">
+        <legend className="text-sm font-semibold">Contactos obligatorios para pedirla</legend>
+        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+          {CONTACT_KINDS.map((k) => (
+            <label key={k.value} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={f.required_contacts.includes(k.value)}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    required_contacts: e.target.checked
+                      ? [...f.required_contacts, k.value]
+                      : f.required_contacts.filter((x) => x !== k.value),
+                  })
+                }
+                className="size-5 accent-sw-blue"
+              />
+              {k.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <label className="flex items-center gap-2 text-sm font-semibold md:col-span-2">
         <input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} className="size-5 accent-sw-blue" />
         Activo (se puede pedir)

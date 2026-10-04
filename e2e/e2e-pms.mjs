@@ -27,7 +27,7 @@ await ana.locator("#np-client").fill("Grupo Omega");
 ok(await ana.getByRole("list", { name: "PM del proyecto" }).getByText("Ana PM (yo)").isVisible(), "PM por defecto: quien crea");
 await ana.locator("#np-pm").selectOption({ label: "Marcos PM" });
 ok(await ana.getByRole("list", { name: "PM del proyecto" }).getByText("Marcos PM").isVisible(), "agrega segundo PM al crear");
-await card(ana, "Toma de medidas").getByRole("checkbox").check();
+await card(ana, "Comparar y recomendar proveedor").getByRole("checkbox").check();
 await ana.screenshot({ path: S + "/pms-nuevo-mobile.png", fullPage: true });
 await ana.getByRole("button", { name: "Enviar pedido" }).click();
 await ana.getByText("Pedido enviado").waitFor({ timeout: 15000 });

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { shortDate } from "@/lib/dates";
-import { ATTACHMENT_KINDS, STATUS_LABELS, personLabel, type PersonOption, type TaskStatus } from "@/lib/domain";
+import { ATTACHMENT_KINDS, CONTACT_COLUMNS, STATUS_LABELS, personLabel, type Contact, type PersonOption, type TaskStatus } from "@/lib/domain";
+import { ContactRow } from "@/components/contacts";
 import { INBOX_COLUMNS, isOpen, type InboxRow } from "@/lib/inbox";
 import { StatusBadge } from "@/components/status-badge";
 import { DueLabel } from "@/components/due-label";
@@ -33,7 +34,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const { data: task } = await supabase.from("task_inbox").select(INBOX_COLUMNS).eq("id", id).maybeSingle<InboxRow>();
   if (!task) notFound();
 
-  const [type, request, attachments, deliverables, events, people, watchers, siblings, pms] = await Promise.all([
+  const [type, request, attachments, deliverables, events, people, watchers, siblings, pms, contactRows] = await Promise.all([
     supabase.from("task_types").select("needs, delivers, is_discovery").eq("id", task.task_type_id).single(),
     supabase.from("requests").select("comment").eq("id", task.request_id).single(),
     supabase.from("attachments").select("*").or(`request_id.eq.${task.request_id},task_id.eq.${task.id}`).order("created_at"),
@@ -43,7 +44,9 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
     supabase.from("request_watchers").select("email").eq("request_id", task.request_id),
     supabase.from("task_inbox").select("id, task_type_name, status, due_date").eq("request_id", task.request_id).neq("id", task.id),
     supabase.from("project_managers").select("profile_id").eq("project_id", task.project_id).order("created_at"),
+    supabase.from("project_contacts").select(CONTACT_COLUMNS).eq("project_id", task.project_id).order("created_at"),
   ]);
+  const contacts = (contactRows.data ?? []) as Contact[];
 
   const persons = (people.data ?? []) as (PersonOption & { role: string })[];
   const name = (pid: string | null) => (pid ? (persons.find((p) => p.id === pid) ? personLabel(persons.find((p) => p.id === pid)!) : "") : "");
@@ -215,6 +218,21 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                 <span className="font-semibold">Comentario del pedido: </span>
                 {request.data.comment}
               </p>
+            )}
+          </section>
+
+          <section aria-labelledby="s-contactos" className="border border-line p-4">
+            <h2 id="s-contactos" className="mb-2 text-sm font-bold uppercase tracking-wide text-sw-blue">
+              Contactos del proyecto
+            </h2>
+            {contacts.length === 0 ? (
+              <p className="text-sm text-muted">Sin contactos. Se cargan en la página del proyecto.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {contacts.map((c) => (
+                  <ContactRow key={c.id} c={c} />
+                ))}
+              </ul>
             )}
           </section>
 

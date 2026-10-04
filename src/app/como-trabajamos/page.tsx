@@ -3,6 +3,7 @@ import path from "node:path";
 import { marked } from "marked";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { CONTACT_LABEL, type ContactKind } from "@/lib/domain";
 
 export const metadata = { title: "Cómo trabajamos · Técnica Smartworks" };
 
@@ -15,7 +16,7 @@ export default async function HowWeWorkPage() {
   const supabase = await createClient();
   const { data: types } = await supabase
     .from("task_types")
-    .select("id, name, min_days, needs, delivers")
+    .select("id, name, min_days, needs, delivers, required_contacts")
     .eq("active", true)
     .order("position");
 
@@ -42,6 +43,11 @@ export default async function HowWeWorkPage() {
                 <td>
                   <strong>{t.name}</strong>
                   <span className="block text-sm text-muted">Para empezar: {t.needs}</span>
+                  {t.required_contacts?.length > 0 && (
+                    <span className="block text-sm text-muted">
+                      Contactos: {(t.required_contacts as ContactKind[]).map((k) => CONTACT_LABEL[k]).join(", ")}
+                    </span>
+                  )}
                 </td>
                 <td className="text-right font-bold tabular-nums">{t.min_days}</td>
               </tr>

@@ -34,7 +34,7 @@ if ! curl -s -o /dev/null http://localhost:3000/login; then
 fi
 
 fail=0
-for t in "${@:-pedido notif listas tarea catalogo pms}"; do
+for t in "${@:-pedido notif listas tarea catalogo pms contactos}"; do
   for s in $t; do
     reset
     out=$(cd "$E" && node "e2e-$s.mjs" 2>&1)

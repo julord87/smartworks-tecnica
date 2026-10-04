@@ -16,6 +16,13 @@ async function loginPw(page, email) {
   await page.waitForLoadState("load");
   await page.waitForTimeout(500);
 }
+async function addContact(page, kind, name, email, phone = "") {
+  await page.locator("#nc-kind").selectOption(kind);
+  await page.locator("#nc-name").fill(name);
+  await page.locator("#nc-email").fill(email);
+  await page.locator("#nc-phone").fill(phone);
+  await page.getByRole("button", { name: "Agregar contacto" }).click();
+}
 const card = (page, name) => page.locator("div.border", { has: page.getByText(name, { exact: true }) }).first();
 
 // ---- Marcos: proyecto nuevo + No se que necesito
@@ -51,7 +58,16 @@ await page.locator("#files").setInputFiles([
 ]);
 ok((await page.getByLabel("Tipo de Briefing Delta (versión 2).pdf").inputValue()) === "briefing", "tipo de adjunto sugerido: briefing");
 ok((await page.getByLabel("Tipo de render escenario.jpg").inputValue()) === "render", "tipo de adjunto sugerido: render");
+ok(await card(page, "Visita técnica al venue").getByText("Requiere contacto: Técnico del venue").isVisible(), "la tarea dice qué contacto exige");
 await page.locator("#comment").fill("Congreso de 600 personas, 2 días.");
+await page.getByRole("button", { name: "Enviar pedido" }).click();
+ok(await page.getByText("Faltan contactos del proyecto: Técnico del venue.").first().isVisible(), "sin el contacto exigido no se envía");
+await page.locator("#nc-kind").selectOption("venue_tecnico");
+await page.locator("#nc-name").fill("Sin datos");
+await page.getByRole("button", { name: "Agregar contacto" }).click();
+ok(await page.getByText("Pon al menos correo o teléfono.").isVisible(), "contacto sin correo ni teléfono: error");
+await addContact(page, "venue_tecnico", "Jefe técnico Auditorio", "Tecnico@Auditorio.test", "600 111 222");
+ok(await page.getByText("✓ Técnico del venue").isVisible(), "contacto exigido marcado como cargado");
 await page.screenshot({ path: S + "/nuevo-mobile-full.png", fullPage: true });
 await page.getByRole("button", { name: "Enviar pedido" }).click();
 await page.getByText("Pedido enviado").waitFor({ timeout: 15000 });
@@ -59,6 +75,8 @@ await page.screenshot({ path: S + "/nuevo-mobile-done.png", fullPage: true });
 
 const [proj] = await q("select * from public.projects where name = 'Congreso Delta 2027'");
 ok(proj && proj.pm_id && proj.venue === "Auditorio Mar", "proyecto nuevo creado");
+const pc = await q("select kind, email, phone from public.project_contacts where project_id = $1", [proj.id]);
+ok(pc.length === 1 && pc[0].kind === "venue_tecnico" && pc[0].email === "tecnico@auditorio.test", "contacto guardado en el proyecto");
 const [req] = await q("select * from public.requests where project_id = $1", [proj.id]);
 ok(req.comment.includes("600 personas"), "pedido con comentario");
 const tasks = await q("select t.*, tt.name from public.tasks t join public.task_types tt on tt.id = t.task_type_id where request_id = $1", [req.id]);
@@ -78,6 +96,7 @@ await loginPw(p2, "pm.ana@smartworks.es");
 await p2.goto(BASE + "/pedidos/nuevo");
 await p2.locator("#project").selectOption("10000000-0000-0000-0000-000000000002");
 await card(p2, "Specs de contenidos por superficie").getByRole("checkbox").check();
+await addContact(p2, "proveedor", "Producción AV", "", "+34 600 333 444");
 await p2.locator("#files").setInputFiles([{ name: "plano-rigging.dwg", mimeType: "application/octet-stream", buffer: Buffer.from("dwg") }]);
 await p2.screenshot({ path: S + "/nuevo-desktop.png", fullPage: true });
 await p2.getByRole("button", { name: "Enviar pedido" }).click();

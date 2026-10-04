@@ -216,14 +216,36 @@ select pg_temp.check((select min_days from public.task_types where position = 12
 
 -- ---------------------------------------------------------------- create_request
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+select pg_temp.expect_error(
+  $$select public.create_request(null, '{"name":"Feria Sin Contacto","client":"C"}', null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 10)) from public.task_types where position = 3))$$,
+  'contactos: toma de medidas exige técnico del venue');
+select pg_temp.expect_error(
+  $$select public.create_request(null, '{"name":"Feria Contacto Malo","client":"C"}', null,
+    (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 10)) from public.task_types where position = 3),
+    '{}', '[{"kind":"venue_tecnico","name":"Sin datos"}]')$$,
+  'contactos: exige correo o teléfono');
 create temp table cr as
 select public.create_request(
   null,
   '{"name":"Feria Prueba","client":"Cliente Prueba","event_date":"2030-05-01","venue":"Pabellón 3"}',
   'comentario',
   (select jsonb_agg(jsonb_build_object('task_type_id', id, 'due_date', current_date + 10, 'notes', 'n'))
-   from public.task_types where position in (0, 3))
+   from public.task_types where position in (0, 3)),
+  '{}',
+  '[{"kind":"venue_tecnico","name":"Jefe técnico","company":"Pabellón 3","email":"Tecnico@Pabellon.test","phone":"600 000 000"}]'
 ) as r;
+select pg_temp.check(
+  (select email from public.project_contacts where project_id = ((select r from cr) ->> 'project_id')::uuid) = 'tecnico@pabellon.test',
+  'contactos: se guardan con el pedido');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
+delete from public.project_contacts where project_id = ((select r from cr) ->> 'project_id')::uuid;
+reset role;
+select pg_temp.check(
+  (select count(*) from public.project_contacts where project_id = ((select r from cr) ->> 'project_id')::uuid) = 1,
+  'contactos: quien no es del proyecto no los borra');
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
 select pg_temp.check(
   (select count(*) from public.tasks where request_id = ((select r from cr) ->> 'request_id')::uuid) = 2,
   'create_request crea proyecto, pedido y tareas');

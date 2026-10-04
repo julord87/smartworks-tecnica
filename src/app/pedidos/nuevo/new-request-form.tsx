@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { CheckCircle, Paperclip, Trash, WarningCircle, X } from "@phosphor-icons/react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { PmList } from "@/components/pm-list";
+import { ContactForm, ContactRow } from "@/components/contacts";
 import { createClient } from "@/lib/supabase/client";
 import { addDays, daysBetween, shortDate, todayISO } from "@/lib/dates";
 import {
@@ -11,7 +12,11 @@ import {
   STORAGE_BUCKET,
   guessKind,
   safeFileName,
+  CONTACT_LABEL,
   type AttachmentKind,
+  type Contact,
+  type ContactDraft,
+  type ContactKind,
   type PersonOption,
   type ProjectOption,
   type TaskType,
@@ -24,6 +29,7 @@ type Props = {
   taskTypes: TaskType[];
   projects: ProjectOption[];
   people: PersonOption[];
+  contacts: Contact[];
 };
 
 type Selected = { due: string; notes: string };
@@ -41,7 +47,7 @@ const SECTION_TITLE = "mb-1 text-sm font-bold uppercase tracking-wide text-sw-bl
 const MAX_MB = 100;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, projects, people }: Props) {
+export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, projects, people, contacts }: Props) {
   const today = todayISO();
   const preset = projects.some((p) => p.id === initialProjectId) ? initialProjectId! : "";
   const [mode, setMode] = useState<"existente" | "nuevo">(projects.length ? "existente" : "nuevo");
@@ -54,6 +60,7 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
     supplier: "",
     pm_ids: [currentUserId],
   });
+  const [newContacts, setNewContacts] = useState<ContactDraft[]>([]);
   const [watchers, setWatchers] = useState<string[]>([]);
   const [watcherDraft, setWatcherDraft] = useState("");
   const [watcherError, setWatcherError] = useState("");
@@ -68,6 +75,11 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
   const typeById = useMemo(() => new Map(taskTypes.map((t) => [t.id, t])), [taskTypes]);
   const selectedIds = taskTypes.filter((t) => selected[t.id]).map((t) => t.id);
   const discoverySelected = selectedIds.some((id) => typeById.get(id)?.is_discovery);
+  // Contactos que exigen las tareas marcadas y cuáles faltan en el proyecto
+  const projectContacts = mode === "existente" ? contacts.filter((c) => c.project_id === projectId) : [];
+  const requiredKinds = [...new Set(selectedIds.flatMap((id) => typeById.get(id)?.required_contacts ?? []))] as ContactKind[];
+  const haveKinds = new Set([...projectContacts, ...newContacts].map((c) => c.kind));
+  const missingKinds = requiredKinds.filter((k) => !haveKinds.has(k));
 
   function toggleTask(t: TaskType) {
     setSelected((prev) => {
@@ -110,6 +122,8 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
       if (!s.due) e.push(`Falta la fecha límite de “${typeById.get(id)?.name}”.`);
       else if (s.due < today) e.push(`La fecha de “${typeById.get(id)?.name}” ya pasó.`);
     }
+    if (missingKinds.length)
+      e.push(`Faltan contactos del proyecto: ${missingKinds.map((k) => CONTACT_LABEL[k]).join(", ")}.`);
     if (discoverySelected && files.length === 0)
       e.push("Con “No sé qué necesito” hay que adjuntar al menos un archivo (briefing, proposal...).");
     const tooBig = files.filter((f) => f.file.size > MAX_MB * 1024 * 1024);
@@ -135,6 +149,7 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
       newProject: mode === "nuevo" ? newProject : null,
       comment,
       watchers: allWatchers,
+      contacts: newContacts,
       tasks: selectedIds.map((id) => ({ task_type_id: id, due_date: selected[id].due, notes: selected[id].notes })),
       fileCount: files.length,
     });
@@ -377,6 +392,8 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
                     <span className="mt-1 block text-xs text-muted">
                       Plazo mínimo: {t.min_days} {t.min_days === 1 ? "día" : "días"}
                       {t.is_discovery && " · Requiere adjuntos"}
+                      {t.required_contacts.length > 0 &&
+                        ` · Requiere contacto: ${t.required_contacts.map((k) => CONTACT_LABEL[k]).join(", ")}`}
                     </span>
                   </span>
                 </label>
@@ -425,6 +442,44 @@ export function NewRequestForm({ initialProjectId, currentUserId, taskTypes, pro
       </section>
 
       {/* Adjuntos */}
+      {/* Contactos */}
+      <section aria-labelledby="sec-contactos" className={SECTION}>
+        <h2 id="sec-contactos" className={SECTION_TITLE}>
+          Contactos del proyecto
+        </h2>
+        <p className="mb-4 text-sm text-muted">
+          Proveedor, cliente, venue y técnico del venue. Quedan guardados en el proyecto para los próximos pedidos.
+        </p>
+        {requiredKinds.length > 0 && (
+          <ul className="mb-4 flex flex-wrap gap-2 text-sm" aria-label="Contactos que piden las tareas">
+            {requiredKinds.map((k) => (
+              <li
+                key={k}
+                className={`border px-3 py-1 font-semibold ${haveKinds.has(k) ? "border-line text-muted" : "border-sw-red text-sw-red"}`}
+              >
+                {haveKinds.has(k) ? "✓ " : "Falta: "}
+                {CONTACT_LABEL[k]}
+              </li>
+            ))}
+          </ul>
+        )}
+        {(projectContacts.length > 0 || newContacts.length > 0) && (
+          <ul className="mb-4 divide-y divide-line border-y border-line">
+            {projectContacts.map((c) => (
+              <ContactRow key={c.id} c={c} />
+            ))}
+            {newContacts.map((c, i) => (
+              <ContactRow key={`n${i}`} c={c} onRemove={() => setNewContacts(newContacts.filter((_, j) => j !== i))} />
+            ))}
+          </ul>
+        )}
+        <ContactForm
+          idPrefix="nc"
+          defaultKind={missingKinds[0] ?? "proveedor"}
+          onAdd={(c) => setNewContacts([...newContacts, c])}
+        />
+      </section>
+
       <section aria-labelledby="sec-adjuntos" className={SECTION}>
         <h2 id="sec-adjuntos" className={SECTION_TITLE}>
           Adjuntos
