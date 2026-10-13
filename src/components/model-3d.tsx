@@ -17,6 +17,9 @@ export function Model3D({ src, title }: { src: string; title: string }) {
           alt: title,
           "camera-controls": "",
           "camera-orbit": "20deg 70deg 95%",
+          // Sin esto no deja acercarse a una zona del venue (el radio mínimo por defecto es todo el modelo)
+          "min-camera-orbit": "auto auto 1m",
+          "max-field-of-view": "45deg",
           "touch-action": "pan-y",
           "shadow-intensity": "0.6",
           exposure: "1",
