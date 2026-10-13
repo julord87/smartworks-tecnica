@@ -29,7 +29,7 @@ ok(true, "solicitante no entra al catálogo");
 const t = await as("tecnica@smartworks.es", { width: 1280, height: 900 });
 await t.goto(BASE + "/catalogo");
 ok(await t.getByRole("heading", { name: "Catálogo" }).isVisible(), "catálogo carga");
-ok(await t.locator("#s-tipos ~ div li").count() === 13, "13 tipos de tarea");
+ok(await t.locator("#s-tipos ~ div li").count() === 14, "14 tipos de tarea");
 
 // editar un tipo
 await t.getByRole("button", { name: /^Editar Overlay/ }).click();

@@ -5,10 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { shortDate } from "@/lib/dates";
 import { ATTACHMENT_KINDS, CONTACT_COLUMNS, STATUS_LABELS, personLabel, type Contact, type PersonOption, type TaskStatus } from "@/lib/domain";
 import { ContactRow } from "@/components/contacts";
+import { Model3D } from "@/components/model-3d";
 import { INBOX_COLUMNS, isOpen, type InboxRow } from "@/lib/inbox";
 import { StatusBadge } from "@/components/status-badge";
 import { DueLabel } from "@/components/due-label";
-import { fileHref } from "@/lib/files";
+import { fileHref, isModel3D } from "@/lib/files";
 import { AddTasksPanel, AssignPanel, DeliverablePanel, ReplyPanel, StatusPanel } from "./task-panels";
 
 export const metadata = { title: "Tarea · Técnica Smartworks" };
@@ -87,13 +88,22 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         <p className="mt-6 border-l-4 border-line bg-panel px-4 py-3 text-sm">Motivo: {task.status_note}</p>
       )}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="grid content-start gap-6">
           {/* Entregables */}
           <section aria-labelledby="s-entregables">
             <h2 id="s-entregables" className="mb-2 text-sm font-bold uppercase tracking-wide text-sw-blue">
               Entregables
             </h2>
+            {(() => {
+              // El 3D más reciente se ve directamente en la página
+              const m = delivs.find((d) => d.storage_path && isModel3D(d.file_name));
+              return m ? (
+                <div className="mb-4">
+                  <Model3D src={`/api/archivo?path=${encodeURIComponent(m.storage_path!)}`} title={`${m.file_name} · v${m.version}`} />
+                </div>
+              ) : null;
+            })()}
             {delivs.length === 0 ? (
               <p className="text-sm text-muted">Todavía no hay entregables.</p>
             ) : (

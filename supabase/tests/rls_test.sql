@@ -67,7 +67,7 @@ select pg_temp.expect_error(
 select pg_temp.expect_error(
   $$select public.is_email_allowed('freelance@estudio-externo.com')$$,
   'is_email_allowed no es invocable por clientes');
-select pg_temp.check((select count(*) from public.task_types) = 13, 'catalogo visible');
+select pg_temp.check((select count(*) from public.task_types) = 14, 'catalogo visible');
 
 select pg_temp.expect_error(
   $$update public.profiles set role = 'tecnica' where id = auth.uid()$$,
