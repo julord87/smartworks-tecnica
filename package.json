@@ -10,6 +10,7 @@
     "test:db": "psql \"${DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}\" -v ON_ERROR_STOP=1 -f supabase/tests/rls_test.sql"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.4.0",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",

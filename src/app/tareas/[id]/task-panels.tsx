@@ -361,6 +361,7 @@ export function DeliverablePanel({ taskId, projectId, nextVersion }: { taskId: s
               </label>
               <span className="min-w-0 truncate text-sm text-muted">{file?.name ?? "Ninguno"}</span>
             </span>
+            <span className="text-xs text-muted">Un modelo 3D en .glb se ve interactivo en la tarea.</span>
           </div>
         ) : (
           <div className="flex flex-col gap-2">

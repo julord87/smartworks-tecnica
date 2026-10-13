@@ -14,6 +14,7 @@ const PASSWORD = "test1234";
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const tokens = {};
 export const sent = [];
+const files = new Map(); // contenido de Storage en memoria
 const emails = [];
 
 async function asUser(uid, fn) {
@@ -150,15 +151,26 @@ http.createServer(async (req, res) => {
       const name = decodeURIComponent(sign[2]);
       const r = await asUser(uid, (c) => c.query("select 1 from storage.objects where bucket_id = $1 and name = $2", [sign[1], name]));
       if (!r.rows.length) return send(res, 400, { statusCode: "404", error: "not_found", message: "Object not found" });
-      return send(res, 200, { signedURL: `/storage/v1/object/sign/${sign[1]}/${encodeURIComponent(name)}?token=prueba` });
+      return send(res, 200, { signedURL: `/object/sign/${sign[1]}/${encodeURI(name)}?token=prueba` });
     }
-    if (sign && req.method === "GET") { res.writeHead(200, { "content-type": "application/octet-stream", ...CORS }); return res.end("contenido de prueba"); }
+    if (sign && req.method === "GET") {
+      const file = files.get(`${sign[1]}/${decodeURIComponent(sign[2])}`);
+      res.writeHead(200, { "content-type": "application/octet-stream", ...CORS });
+      return res.end(file ?? "contenido de prueba");
+    }
 
     // ---------------- Storage
     const st = path.match(/^\/storage\/v1\/object\/([^/]+)\/(.+)$/);
     if (st && req.method === "POST") {
       const name = decodeURIComponent(st[2]);
       const r = await asUser(uid, (c) => c.query("insert into storage.objects (bucket_id, name, owner) values ($1, $2, $3) returning id", [st[1], name, uid]));
+      // Guarda el contenido real (storage-js lo manda como multipart)
+      const ct = req.headers["content-type"] || "";
+      if (ct.startsWith("multipart/form-data")) {
+        const form = await new Response(raw, { headers: { "content-type": ct } }).formData();
+        const f = [...form.values()].find((v) => typeof v !== "string");
+        if (f) files.set(`${st[1]}/${name}`, Buffer.from(await f.arrayBuffer()));
+      } else files.set(`${st[1]}/${name}`, raw);
       return send(res, 200, { Key: `${st[1]}/${name}`, Id: r.rows[0].id });
     }
 
