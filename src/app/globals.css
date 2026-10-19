@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
-/* Identidad Smartworks: azul para estructura, rojo solo para lo critico. Radio 0, sin sombras. */
+/* Blanco y negro, minimalista. Los nombres sw-blue / sw-red se mantienen; hoy son negro. Radio 0, sin sombras. */
 @theme {
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 
-  --color-sw-blue: #2e3192;
-  --color-sw-blue-dark: #23256f;
-  --color-sw-red: #e5194b;
+  --color-sw-blue: #141414;
+  --color-sw-blue-dark: #000000;
+  --color-sw-red: #141414;
   --color-ink: #141414;
-  --color-muted: #54565a;
-  --color-zebra: #fbfbff;
-  --color-panel: #f4f4f6;
-  --color-line: #d9d9de;
+  --color-muted: #5c5c5c;
+  --color-zebra: #fafafa;
+  --color-panel: #f3f3f3;
+  --color-line: #dcdcdc;
 
-  /* Estados de tarea (desaturados) */
-  --color-st-recibida-bg: #eef0f6;
-  --color-st-recibida: #3b3f73;
-  --color-st-falta-bg: #fdeaef;
-  --color-st-falta: #b3123a;
-  --color-st-curso-bg: #e8e9f7;
-  --color-st-curso: #2e3192;
-  --color-st-entregada-bg: #e9f2ec;
-  --color-st-entregada: #2f5d3e;
-  --color-st-cancelada-bg: #f1f1f2;
-  --color-st-cancelada: #6b6d72;
+  /* Estados de tarea en grises; falta informacion va invertido (ver status-badge) */
+  --color-st-recibida-bg: #f0f0f0;
+  --color-st-recibida: #5c5c5c;
+  --color-st-falta-bg: #141414;
+  --color-st-falta: #141414;
+  --color-st-curso-bg: #dedede;
+  --color-st-curso: #141414;
+  --color-st-entregada-bg: #ffffff;
+  --color-st-entregada: #141414;
+  --color-st-cancelada-bg: #f0f0f0;
+  --color-st-cancelada: #8a8a8a;
 
   --radius-none: 0;
 }

@@ -2,9 +2,9 @@ import { STATUS_LABELS, type TaskStatus } from "@/lib/domain";
 
 const STYLES: Record<TaskStatus, string> = {
   recibida: "bg-st-recibida-bg text-st-recibida",
-  falta_informacion: "bg-st-falta-bg text-st-falta",
+  falta_informacion: "bg-st-falta-bg text-white",
   en_curso: "bg-st-curso-bg text-st-curso",
-  entregada: "bg-st-entregada-bg text-st-entregada",
+  entregada: "bg-st-entregada-bg text-st-entregada ring-1 ring-inset ring-ink",
   cancelada: "bg-st-cancelada-bg text-st-cancelada line-through",
 };
 

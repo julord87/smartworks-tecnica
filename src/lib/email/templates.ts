@@ -1,14 +1,14 @@
 // Correos de notificacion: HTML de tablas con estilos en linea (compatibles con Outlook/Gmail) y version texto.
-// Identidad de la casa: banda roja / bloque azul / banda roja, Arial, sin esquinas redondeadas.
+// Blanco y negro, Arial, sin esquinas redondeadas.
 import { shortDate } from "@/lib/dates";
 import { STATUS_LABELS, type TaskStatus } from "@/lib/domain";
 
-const BLUE = "#2E3192";
-const RED = "#E5194B";
+const BLUE = "#141414";
+const RED = "#000000";
 const INK = "#141414";
 const MUTED = "#54565A";
-const PANEL = "#F4F4F6";
-const LINE = "#D9D9DE";
+const PANEL = "#F3F3F3";
+const LINE = "#DCDCDC";
 const FONT = "Arial, Helvetica, sans-serif";
 
 export type NotificationKind = "pedido_nuevo" | "falta_informacion" | "entregada" | "cancelada" | "respuesta";
@@ -139,7 +139,7 @@ function dataRows(rows: [string, string | null | undefined][]): string {
 function tasksTable(tasks: MailRequest["tasks"]): string {
   const rows = tasks
     .map(
-      (t, i) => `<tr style="background:${i % 2 ? "#FBFBFF" : "#ffffff"};">
+      (t, i) => `<tr style="background:${i % 2 ? "#FAFAFA" : "#ffffff"};">
 <td style="padding:8px;border-bottom:1px solid ${LINE};font-weight:bold;">${esc(t.name)}${
         t.notes ? `<div style="font-weight:normal;color:${MUTED};font-size:13px;">${esc(t.notes)}</div>` : ""
       }</td>
