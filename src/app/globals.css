@@ -29,6 +29,22 @@
 }
 
 @layer base {
+  /* Tailwind v4 ya no pone la manito en botones: se recupera para todo lo clicable */
+  button:not(:disabled),
+  [role="button"],
+  [role="radio"],
+  [role="tab"],
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
   html {
     -webkit-text-size-adjust: 100%;
   }
