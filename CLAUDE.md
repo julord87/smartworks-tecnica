@@ -8,7 +8,7 @@
 - Las decisiones menores se toman con criterio y se informan al final, no se preguntan.
 
 ## Convenciones
-- Interfaz en español. Identidad Smartworks (bandas rojo/azul/rojo, Archivo, radio 0, sin sombras).
+- Interfaz en español. Blanco y negro minimalista (desde 2026-10-19; antes azul/rojo Smartworks), Archivo, radio 0, sin sombras.
 - Migraciones en `supabase/migrations/`, aplicadas también en el proyecto remoto
   (`bjsnhwtlwffarvulnmee`). La herramienta de Supabase se cuelga con `DROP`: evitarlo (usar
   `create or replace`, envoltorios o columnas nuevas).

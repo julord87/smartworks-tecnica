@@ -23,7 +23,7 @@ export function Model3D({ src, title }: { src: string; title: string }) {
           "touch-action": "pan-y",
           "shadow-intensity": "0.6",
           exposure: "1",
-          style: { width: "100%", height: "min(60vh, 460px)", background: "#F4F4F6" },
+          style: { width: "100%", height: "min(60vh, 460px)", background: "#F3F3F3" },
         })
       ) : (
         <div className="grid h-[min(60vh,460px)] place-items-center text-sm text-muted">Cargando modelo 3D...</div>

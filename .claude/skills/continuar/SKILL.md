@@ -64,8 +64,8 @@ Ver `e2e/README.md` (`.env.local` de prueba apunta al mock). Si falta Postgres: 
 Para capturas con Chromium usar `--font-render-hinting=none`. No usar `pkill -f run.sh` (mata la propia shell).
 
 ## Diseño
-Identidad Smartworks: bandas rojo/azul/rojo, Archivo, radio 0, sin sombras, iconos Phosphor, labels arriba.
-Tokens en `src/app/globals.css` (`sw-blue` #2E3192, `sw-red` #E5194B, `ink`, `muted`, `zebra`, `panel`, `line`).
+Blanco y negro minimalista (pedido del usuario, 2026-10-19), Archivo, radio 0, sin sombras, iconos Phosphor, labels arriba.
+Tokens en `src/app/globals.css` (`sw-blue` y `sw-red` hoy son negro #141414; `ink`, `muted`, `zebra`, `panel`, `line`).
 Interfaz en español rioplatense neutro ("podés", "elegí").
 
 ## Herramientas del usuario (se pierden al cambiar de contenedor; reinstalar si las pide)
